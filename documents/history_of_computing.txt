@@ -1,0 +1,22 @@
+The History of Computing
+
+Charles Babbage designed the Analytical Engine in the nineteenth century.
+Ada Lovelace wrote what is considered the first algorithm intended for a machine.
+
+Alan Turing formalized computation with the Turing machine in 1936.
+The Turing machine is a mathematical model that defines what is computable.
+
+The ENIAC, completed in 1945, was among the first electronic general-purpose
+computers. It filled a room and consumed enormous power.
+
+Transistors replaced vacuum tubes, and integrated circuits packed thousands
+of components onto a single chip. Moore observed that transistor density
+doubled roughly every two years.
+
+The personal computer arrived in the late seventies. Graphical interfaces,
+the mouse, and the spreadsheet transformed computing into a mass product.
+
+The World Wide Web, proposed by Tim Berners-Lee in 1989, connected documents
+across the globe with hyperlinks. Search engines such as AltaVista and later
+Google made the web navigable, and the inverted index became the most
+important data structure of the information age.

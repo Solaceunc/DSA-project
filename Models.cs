@@ -1,0 +1,95 @@
+namespace MiniSearchEngine.Models;
+
+/// <summary>
+/// One posting of the inverted index: how many times a single word appears in
+/// ONE document, plus the line numbers where it occurs.
+///
+/// Lives inside the inverted index
+///     Dictionary&lt;string, List&lt;SearchResult&gt;&gt;   // word -> postings list
+/// where each entry in the list corresponds to a distinct document.
+/// </summary>
+public sealed class SearchResult
+{
+    public SearchResult(string documentName, string filePath)
+    {
+        DocumentName = documentName;
+        FilePath = filePath;
+    }
+
+    /// <summary>File name only (e.g. "algorithms.txt") — for display.</summary>
+    public string DocumentName { get; }
+
+    /// <summary>Full path on disk — the key into the in-memory document store.</summary>
+    public string FilePath { get; }
+
+    /// <summary>Term frequency: occurrences of the word inside this document.</summary>
+    public int OccurrenceCount { get; private set; }
+
+    /// <summary>1-based, ascending line numbers where the word occurs.</summary>
+    public List<int> LineNumbers { get; } = new();
+
+    /// <summary>
+    /// Called by the indexer once per occurrence of the word in this document.
+    /// Tokens of one line are processed consecutively, so comparing against the
+    /// last entry keeps the list de-duplicated in O(1) per call.
+    /// </summary>
+    internal void RecordOccurrence(int lineNumber)
+    {
+        OccurrenceCount++;
+        if (LineNumbers.Count == 0 || LineNumbers[^1] != lineNumber)
+            LineNumbers.Add(lineNumber);
+    }
+
+    /// <summary>
+    /// Used by AND search: raises the ranking score to the SUM of the term
+    /// frequencies of every matched term, without duplicating line numbers.
+    /// </summary>
+    internal void SetCombinedScore(int totalOccurrences)
+    {
+        if (totalOccurrences > OccurrenceCount)
+            OccurrenceCount = totalOccurrences;
+    }
+}
+
+/// <summary>API output for a single matching document (GET /api/search).</summary>
+public record DocumentMatch(
+    string DocumentName,
+    string FilePath,
+    double RelevanceScore,
+    int OccurrenceCount,
+    IReadOnlyList<int> LineNumbers,
+    IReadOnlyList<string> Snippets);
+
+/// <summary>API output of GET /api/search, including the latency benchmark.</summary>
+public record SearchResponse(
+    string Query,
+    string Mode,
+    int TotalMatches,
+    double SearchTimeMs,
+    IReadOnlyList<DocumentMatch> Results);
+
+/// <summary>A vocabulary word from the Trie plus how often it occurs in the corpus.</summary>
+public record WordSuggestion(string Word, int Frequency);
+
+/// <summary>API output of GET /api/autocomplete.</summary>
+public record AutocompleteResponse(string Prefix, double QueryTimeMs, IReadOnlyList<WordSuggestion> Suggestions);
+
+/// <summary>API output of POST /api/index.</summary>
+public record IndexResponse(
+    bool Success,
+    string FolderPath,
+    int FilesIndexed,
+    int TokensIndexed,
+    int UniqueWords,
+    double IndexTimeMs,
+    string? Error = null);
+
+/// <summary>API output of GET /api/stats.</summary>
+public record StatsResponse(
+    bool IsIndexed,
+    string FolderPath,
+    int TotalFiles,
+    int UniqueWords,
+    int TotalTokens,
+    double IndexTimeMs,
+    DateTime? LastIndexedUtc);

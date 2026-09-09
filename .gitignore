@@ -1,0 +1,16 @@
+## .NET build output
+bin/
+obj/
+out/
+publish/
+
+## IDE / editor
+.vs/
+.idea/
+*.user
+*.suo
+*.DotSettings.user
+
+## Logs & local tooling
+*.log
+.freebuff/
