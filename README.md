@@ -1,7 +1,22 @@
 # 🔎 Mini Search Engine — C# .NET 8
 
+[![CI](https://github.com/Sea8611/I.T-211-Project/actions/workflows/ci.yml/badge.svg)](https://github.com/Sea8611/I.T-211-Project/actions/workflows/ci.yml)
+![.NET](https://img.shields.io/badge/.NET-8.0-512BD4)
+![NuGet packages](https://img.shields.io/badge/NuGet%20packages-0-success)
+
+![Mini Search Engine](docs/banner.svg)
+
 A standalone keyword search engine that indexes and searches local `.txt` files, built as a
 complete Data Structures & Algorithms showcase on top of ASP.NET Core Minimal APIs.
+
+## Features
+
+- 🔍 **Inverted index** — hand-built hash table (`Dictionary<string, List<SearchResult>>`) whose postings carry occurrence counts and 1-based line numbers
+- 🌳 **Trie autocomplete** — prefix tree implemented 100% from scratch, powering the live dropdown while you type
+- ⚖️ **TF ranking** — most relevant files first, with AND intersection and OR union matching
+- ⏱️ **Stopwatch benchmarks** — exact `indexTimeMs` / `searchTimeMs` returned by every call and displayed live
+- ✨ **Highlighted snippets** — ~100-character previews with `<mark>` tags, extracted from the original text
+- 🚀 **One-command start** — `dotnet run` opens the GUI at http://localhost:5000 automatically
 
 - **Inverted Index** (hash table) — `Dictionary<string, List<SearchResult>>` mapping every
   sanitized word to its postings (documents, occurrence counts, line numbers).

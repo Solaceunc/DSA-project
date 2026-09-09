@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-and-smoke-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build (Release)
+        run: dotnet build --no-restore -c Release
+
+      # One step starts the server, waits for /health, and exercises the full
+      # API surface: index -> AND search -> autocomplete -> stats.
+      - name: Start server and run API smoke test
+        run: |
+          set -e
+          dotnet run --no-build -c Release > server.log 2>&1 &
+
+          echo "Waiting for Kestrel to answer /health..."
+          ready=0
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:5000/health > /dev/null; then ready=1; break; fi
+            sleep 1
+          done
+          if [ "$ready" -ne 1 ]; then echo "Server did not start"; tail -50 server.log; exit 1; fi
+
+          echo "── POST /api/index ──"
+          curl -sf -X POST http://localhost:5000/api/index | tee /tmp/index.json
+          grep -q '"success":true' /tmp/index.json
+
+          echo "── GET /api/search (AND, snippets) ──"
+          curl -sf "http://localhost:5000/api/search?q=hash%20table" | tee /tmp/search.json
+          grep -q '"mode":"AND"' /tmp/search.json
+          grep -q '<mark>' /tmp/search.json
+
+          echo "── GET /api/search (explicit OR operator) ──"
+          curl -sf "http://localhost:5000/api/search?q=graph%20or%20tree" | tee /tmp/or.json
+          grep -q '"mode":"OR"' /tmp/or.json
+
+          echo "── GET /api/autocomplete ──"
+          curl -sf "http://localhost:5000/api/autocomplete?prefix=sort" | tee /tmp/ac.json
+          grep -q '"word":"sort"' /tmp/ac.json
+
+          echo "── GET /api/stats ──"
+          curl -sf http://localhost:5000/api/stats | tee /tmp/stats.json
+          grep -q '"isIndexed":true' /tmp/stats.json
+
+          echo "ALL SMOKE TESTS PASSED ✔"
+
+      - name: Print server log (on failure)
+        if: failure()
+        run: tail -50 server.log
