@@ -14,3 +14,7 @@ publish/
 ## Logs & local tooling
 *.log
 .freebuff/
+
+## Release artifacts (attached to GitHub Releases instead)
+publish/
+*.zip
