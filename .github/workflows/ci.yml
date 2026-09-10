@@ -57,9 +57,16 @@ jobs:
           curl -sf "http://localhost:5000/api/autocomplete?prefix=sort" | tee /tmp/ac.json
           grep -q '"word":"sort"' /tmp/ac.json
 
-          echo "── GET /api/stats ──"
+          echo "── GET /api/definition (Phase 2 seeded term) ──"
+          curl -sf "http://localhost:5000/api/definition?word=trie" | tee /tmp/def.json
+          grep -q '"word":"trie"' /tmp/def.json
+          grep -q 'prefix tree' /tmp/def.json
+
+          echo "── GET /api/stats (seed state included) ──"
           curl -sf http://localhost:5000/api/stats | tee /tmp/stats.json
           grep -q '"isIndexed":true' /tmp/stats.json
+          grep -q '"seedSucceeded":true' /tmp/stats.json
+          grep -q '"seededTerms":' /tmp/stats.json
 
           echo "ALL SMOKE TESTS PASSED ✔"
 

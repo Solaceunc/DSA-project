@@ -92,4 +92,17 @@ public record StatsResponse(
     int UniqueWords,
     int TotalTokens,
     double IndexTimeMs,
-    DateTime? LastIndexedUtc);
+    DateTime? LastIndexedUtc,
+
+    // ── Phase 2: external seeding ──
+    int SeededTerms,
+    string SeedProvider,
+    bool SeedSucceeded,
+    string? SeedError = null);
+
+/// <summary>API output of GET /api/definition — the dictionary entry for one word.</summary>
+public record DefinitionResponse(
+    string Word,
+    string? Definition,
+    string Provider,
+    bool InTrie);

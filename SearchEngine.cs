@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Text;
 using MiniSearchEngine.Models;
@@ -152,6 +153,11 @@ public sealed class SearchEngine
             // Build the Trie from the final vocabulary with true corpus counts.
             foreach (var word in vocabulary)
                 trie.Insert(word, index[word].Sum(p => p.OccurrenceCount));
+
+            // Phase 2: re-apply external definitions into the freshly built Trie,
+            // so a rebuild never drops seeded vocabulary.
+            foreach (var entry in _definitions.Values)
+                trie.Insert(entry.Term, 1);
 
             stopwatch.Stop();                          // ── benchmark result ──
 
@@ -377,7 +383,13 @@ public sealed class SearchEngine
                 _vocabulary.Count,
                 TotalTokens,
                 LastIndexTimeMs,
-                LastIndexedUtc);
+                LastIndexedUtc,
+
+                // Phase 2: seed state for the UI.
+                _definitions.Count,
+                SeedProvider,
+                SeedSucceeded,
+                SeedError);
         }
     }
 
@@ -385,6 +397,79 @@ public sealed class SearchEngine
     public int UniqueWordCount
     {
         get { lock (_lock) return _vocabulary.Count; }
+    }
+
+    // ─────────────────── Phase 2: external term seeding ───────────────────
+
+    /// <summary>Phase-2 definitions keyed by sanitized term (seeds from MariaDB or GitHub).</summary>
+    private readonly ConcurrentDictionary<string, TermDefinition> _definitions = new(StringComparer.Ordinal);
+
+    /// <summary>Provider that supplied the current definitions ("MariaDB", "GitHub", or "none").</summary>
+    public string SeedProvider { get; private set; } = "none";
+
+    /// <summary>True once at least one external seed batch loaded cleanly.</summary>
+    public bool SeedSucceeded { get; private set; }
+
+    /// <summary>Last provider error, surfaced through /api/stats for easy diagnosis.</summary>
+    public string? SeedError { get; private set; }
+
+    /// <summary>
+    /// Phase 2: seeds the engine from the configured external data source.
+    /// Search algorithms stay untouched — a seed does exactly two things:
+    ///   1. stores the definition for GET /api/definition?word=…
+    ///   2. INSERTs the word into the CURRENT Trie, so it appears in
+    ///      autocomplete even without a matching .txt document.
+    /// Also called from <see cref="BuildIndex"/> after every re-index so a
+    /// rebuild never drops externally seeded vocabulary.
+    /// </summary>
+    public async Task SeedAsync(IDataSource dataSource)
+    {
+        var stopwatch = Stopwatch.StartNew();          // ── benchmark: seeding ──
+
+        var terms = await dataSource.LoadTermsAsync(); // never throws by contract
+
+        var inserted = 0;
+        foreach (var entry in terms)
+        {
+            // Same sanitization as the corpus: "Inverted Index" -> "inverted index".
+            var normalized = Tokenizer.SanitizeTerm(entry.Term);
+            if (normalized.Length == 0)
+                continue;
+
+            _definitions[normalized] = new TermDefinition(normalized, entry.Definition);
+            _trie.Insert(normalized, 1);               // O(L), merges into any existing node
+            inserted++;
+        }
+
+        stopwatch.Stop();                              // ── benchmark result ──
+
+        lock (_lock)
+        {
+            SeedProvider = dataSource.ProviderName;
+            SeedSucceeded = terms.Count > 0;
+            SeedError = dataSource.LastError;
+        }
+
+        Console.WriteLine(
+            $"[seed] {dataSource.ProviderName}: {inserted} term(s) usable, " +
+            $"{stopwatch.Elapsed.TotalMilliseconds:F1} ms total.");
+    }
+
+    /// <summary>Looks up the dictionary entry for one sanitized word (GET /api/definition).</summary>
+    public DefinitionResponse? TryGetDefinition(string rawWord)
+    {
+        var word = Tokenizer.SanitizeTerm(rawWord);
+        if (word.Length == 0)
+            return null;
+
+        lock (_lock)
+        {
+            return new DefinitionResponse(
+                word,
+                _definitions.TryGetValue(word, out var entry) ? entry.Definition : null,
+                _definitions.ContainsKey(word) ? SeedProvider : "none",
+                _trie.Contains(word));
+        }
     }
 
     // ─────────────────────────── snippet builder ───────────────────────────

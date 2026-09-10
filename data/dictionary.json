@@ -1,0 +1,16 @@
+{
+  "terms": [
+    { "term": "algorithm",     "definition": "A finite, unambiguous sequence of steps that transforms an input into an output — the core object of study in computer science." },
+    { "term": "trie",          "definition": "A prefix tree: each edge consumes one character, so all words sharing a prefix share the path to it — the structure behind autocomplete." },
+    { "term": "inverted index","definition": "A hash table mapping each word to the documents containing it — the same core structure full search engines are built on." },
+    { "term": "tokenizer",     "definition": "The pipeline stage that splits raw text into normalized tokens: punctuation stripped, lowercased, stop-words dropped." },
+    { "term": "stopword",      "definition": "A high-frequency word with little meaning on its own (the, is, of…) that indexing skips to save space." },
+    { "term": "relevance",     "definition": "A score ranking documents for a query; this engine uses term frequency — how often the words appear in the file." },
+    { "term": "snippet",       "definition": "A ~100 character window of the original text around a match, with the matched words highlighted for preview." },
+    { "term": "kestrel",       "definition": "The cross-platform web server built into ASP.NET Core; it serves this app at http://localhost:5000." },
+    { "term": "hash table",    "definition": "A structure pairing keys with buckets via a hash function, giving average O(1) lookups — used for the inverted index itself." },
+    { "term": "big o",         "definition": "Notation describing how an algorithm's cost grows with input size; the Trie's insert is O(length of word)." },
+    { "term": "corpus",        "definition": "The body of documents an engine indexes; here, every .txt file inside the selected folder." },
+    { "term": "benchmark",   "definition": "A measured timing; System.Diagnostics.Stopwatch wraps indexing and search so exact milliseconds reach the UI." }
+  ]
+}

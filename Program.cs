@@ -9,7 +9,11 @@ using MiniSearchEngine.Models;
 //   POST /api/index            (re)build the index over a folder of .txt files
 //   GET  /api/search?q=…       keyword search with AND/OR matching + snippets
 //   GET  /api/autocomplete?p=… Trie-based live word completions
-//   GET  /api/stats            index health, sizes and build latency
+//   GET  /api/definition?word= Phase 2: dictionary entry for one word
+//   GET  /api/stats            index health, sizes, build latency, seed state
+//
+// Phase 2: on startup the configured IDataSource (MariaDB or GitHub raw JSON)
+// seeds the Trie + definition store BEFORE the server accepts traffic.
 //
 // When started, the app opens the default browser at http://localhost:5000
 // so the GUI appears without the user typing any URL (see LaunchBrowser).
@@ -22,6 +26,39 @@ builder.WebHost.UseUrls("http://localhost:5000");
 
 // One shared, thread-safe engine instance for the whole process.
 builder.Services.AddSingleton<SearchEngine>();
+
+// ─────────────── Phase 2: pick the external data seed provider ───────────────
+// appsettings.json → "SeedDataSource:Provider" is "GitHub" or "MariaDB".
+// Each provider gets a named HttpClient so the URL base can live in config.
+
+var seedConfig = builder.Configuration.GetSection("SeedDataSource");
+var providerName = seedConfig["Provider"] ?? "GitHub";
+
+builder.Services.AddHttpClient("GitHub", client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(10);
+    // GitHub raw URLs resolve relative to the API root:
+    //   https://raw.githubusercontent.com/<user>/<repo>/<branch>/
+    client.BaseAddress = new Uri("https://raw.githubusercontent.com/");
+});
+
+if (providerName.Equals("MariaDB", StringComparison.OrdinalIgnoreCase))
+{
+    var connectionString = seedConfig["MariaDB:ConnectionString"] ?? string.Empty;
+    var table = seedConfig["MariaDB:Table"] ?? "terms";
+    builder.Services.AddSingleton<IDataSource>(_ => new MySqlDataSource(connectionString, table));
+}
+else
+{
+    // GitHub raw JSON: the named "GitHub" HttpClient carries the base address;
+    // the provider only needs the repository-relative raw URL from config.
+    var rawUrl = seedConfig["GitHub:RawUrl"] ?? string.Empty;
+    builder.Services.AddSingleton<IDataSource>(sp =>
+    {
+        var factory = sp.GetRequiredService<IHttpClientFactory>();
+        return new GitHubJsonDataSource(factory.CreateClient("GitHub"), rawUrl);
+    });
+}
 
 var app = builder.Build();
 
@@ -76,6 +113,25 @@ app.MapGet("/api/autocomplete",
         })
     .WithName("Autocomplete");
 
+// ── Phase 2: dictionary lookup, complements /api/search ──
+// Returns the definition of one word (null when unknown) plus whether the
+// word is in the Trie, so the UI can distinguish "no definition" from
+// "unknown word entirely".
+app.MapGet("/api/definition",
+        (SearchEngine engine, HttpRequest request) =>
+        {
+            var word = (string?)request.Query["word"];
+            if (string.IsNullOrWhiteSpace(word))
+                return Results.Json(new DefinitionResponse(string.Empty, null, "none", false),
+                    statusCode: StatusCodes.Status400BadRequest);
+
+            var definition = engine.TryGetDefinition(word);
+            return definition is null
+                ? Results.Json(new DefinitionResponse(word.Trim(), null, "none", false))
+                : Results.Json(definition);
+        })
+    .WithName("Definition");
+
 app.MapGet("/api/stats",
         (SearchEngine engine) => Results.Json(engine.GetStats()))
     .WithName("Stats");
@@ -83,6 +139,19 @@ app.MapGet("/api/stats",
 // Health probe used by the auto-launch logic (and handy for tooling).
 app.MapGet("/health", () => Results.Ok(new { status = "healthy" }))
     .ExcludeFromDescription();
+
+// ─────────────── Phase 2: seed the Trie before serving traffic ───────────────
+// The engine is registered but nothing is built until the first resolve —
+// so resolving here performs the injection. A 15 s ceiling keeps a dead
+// MariaDB server from hanging startup (the provider itself never throws).
+using (var scope = app.Services.CreateScope())
+{
+    var engine = scope.ServiceProvider.GetRequiredService<SearchEngine>();
+    var dataSource = scope.ServiceProvider.GetRequiredService<IDataSource>();
+
+    Console.WriteLine($"[seed] Provider: {dataSource.ProviderName}");
+    await engine.SeedAsync(dataSource);   // top-level await: seed before Kestrel serves
+}
 
 // ─────────────────────── auto-launch the GUI ───────────────────────
 // The browser may still be starting when we fire Process.Start, so we poll

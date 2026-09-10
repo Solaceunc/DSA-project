@@ -29,8 +29,40 @@ public static partial class Tokenizer
         "a", "an", "the", "is", "of", "to", "in", "on", "at", "for"
     };
 
-    /// <summary>True when the token carries no indexing value.</summary>
+        /// <summary>True when the token carries no indexing value.</summary>
     public static bool IsStopWord(string token) => StopWords.Contains(token);
+
+    /// <summary>
+    /// Phase 2: normalizes a dictionary term without stop-word removal —
+    /// entries like "inverted index" contain "index" + a stop-word-safe word,
+    /// and "the big O" must not lose words. Lowercases and keeps letters/digits
+    /// plus internal spaces (multi-word keys allowed), trimming the result.
+    /// </summary>
+    public static string SanitizeTerm(string term)
+    {
+        if (string.IsNullOrEmpty(term))
+            return string.Empty;
+
+        var chars = term.ToLowerInvariant().ToCharArray();
+        var output = new char[chars.Length];
+        var length = 0;
+
+        foreach (var ch in chars)
+        {
+            // Keep letters/digits as-is; collapse whitespace runs to one space.
+            if (char.IsLetterOrDigit(ch))
+                output[length++] = ch;
+            else if (char.IsWhiteSpace(ch))
+            {
+                if (length > 0 && output[length - 1] != ' ')
+                    output[length++] = ' ';
+            }
+            // every other character (punctuation) is dropped
+        }
+
+        var normalized = new string(output, 0, length).Trim();
+        return normalized;
+    }
 
     /// <summary>
     /// Tokenizes raw text into sanitized, stop-word-free, lowercase terms.

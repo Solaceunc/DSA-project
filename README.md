@@ -52,7 +52,8 @@ press **Index folder**).
 | `POST` | `/api/index?folder={path}` | Crawl the folder, sanitize text, build the inverted index + Trie. Default folder: `./documents`. |
 | `GET`  | `/api/search?q={query}&mode=and\|or` | TF-ranked matches, line numbers, highlighted snippets, `searchTimeMs`. `mode=or` forces union matching; otherwise a standalone `or` token in the query switches modes automatically. |
 | `GET`  | `/api/autocomplete?prefix={p}` | Top 10 Trie completions with corpus frequencies + `queryTimeMs`. |
-| `GET`  | `/api/stats` | Files indexed, unique words, total tokens, index build time. |
+| `GET`  | `/api/definition?word={term}` | Phase 2: dictionary definition of one word, seeded from MariaDB or GitHub JSON. `null` when unknown. |
+| `GET`  | `/api/stats` | Files indexed, unique words, total tokens, index build time — plus seed state (`seededTerms`, `seedProvider`). |
 | `GET`  | `/health` | Liveness probe used by the auto-launcher. |
 
 ### Example
@@ -63,6 +64,7 @@ curl "http://localhost:5000/api/search?q=hash+table"
 curl "http://localhost:5000/api/search?q=graph+or+tree"        # explicit OR operator
 curl "http://localhost:5000/api/search?q=graph+tree&mode=or"   # forced OR
 curl "http://localhost:5000/api/autocomplete?prefix=sort"
+curl "http://localhost:5000/api/definition?word=trie"   # Phase 2 dictionary lookup
 curl http://localhost:5000/api/stats
 ```
 
@@ -83,6 +85,63 @@ curl http://localhost:5000/api/stats
   ]
 }
 ```
+
+## Phase 2 — external data seeding (MariaDB / GitHub JSON)
+
+On startup the engine loads **word → definition** pairs from a configurable source and
+seeds them into the Trie and a definition store — **without touching the search
+algorithms**. Seeded words become searchable and autocompletable even when they appear
+in no `.txt` file, and survive re-indexing (they are re-applied after every rebuild).
+
+The provider is chosen in `appsettings.json`:
+
+```json
+"SeedDataSource": {
+  "Provider": "GitHub",                                   // or "MariaDB"
+  "GitHub":   { "RawUrl": "https://raw.githubusercontent.com/<user>/<repo>/main/data/dictionary.json" },
+  "MariaDB":  { "ConnectionString": "Server=localhost;Port=3306;Database=search_engine;User ID=root;Password=…;" }
+}
+```
+
+Both providers implement `IDataSource.LoadTermsAsync()` (never throws — an unreachable
+source simply leaves the engine unseeded and the error visible in `/api/stats`).
+
+### Option A — GitHub raw JSON (zero setup, default)
+
+Point `RawUrl` at any public JSON file shaped like `data/dictionary.json`:
+
+```json
+{
+  "terms": [
+    { "term": "trie", "definition": "A prefix tree: each edge consumes one character…" }
+  ]
+}
+```
+
+(A bare top-level array of `{ term, definition }` objects works too.) The bundled file
+ships in this repo, so the feature works out of the box.
+
+### Option B — MariaDB / MySQL
+
+Switch `Provider` to `"MariaDB"` and fill in the connection string. The provider
+(`MySqlConnector`) creates its table automatically on first connect:
+
+```sql
+CREATE DATABASE IF NOT EXISTS search_engine;
+USE search_engine;
+-- created automatically, but you can run it yourself:
+CREATE TABLE IF NOT EXISTS terms (
+    term       VARCHAR(100) NOT NULL PRIMARY KEY,
+    definition TEXT         NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+INSERT INTO terms (term, definition) VALUES
+('algorithm', 'A finite, unambiguous sequence of steps…'),
+('trie',      'A prefix tree where every edge consumes one character…');
+```
+
+Each row's `term` is sanitized the same way as query text (lowercased, punctuation
+stripped), so `"Inverted Index"` and `"inverted index"` are one entry.
 
 ## Text sanitization pipeline
 
