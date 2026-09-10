@@ -1,0 +1,334 @@
+# Mini Search Engine Instructions
+
+## 1. Adding More `.txt` Files
+
+The search engine uses the `documents` folder as its text-file database.
+
+### Steps
+
+1. Open the project folder:
+
+   ```text
+   C:\Users\user\Downloads\Finals I.t 211\
+   ```
+
+2. Open the `documents` folder.
+
+3. Add your text files there, for example:
+
+   - `programming.txt`
+   - `web_development.txt`
+   - `school_notes.txt`
+
+4. Make sure the files use the `.txt` extension and contain readable text.
+
+5. Start the application:
+
+   ```powershell
+   dotnet run
+   ```
+
+6. Open the website at [http://localhost:5000](http://localhost:5000).
+
+7. Click **Index folder**.
+
+8. Leave the folder input empty to use the default folder:
+
+   ```text
+   ./documents
+   ```
+
+The application rebuilds its inverted index and Trie using all `.txt` files in that folder.
+
+### Using another folder
+
+You can enter an absolute folder path in the input box, for example:
+
+```text
+C:\Users\user\Documents\MyTextFiles
+```
+
+Then click **Index folder**. The folder must be accessible by the running application and should contain `.txt` files.
+
+### Important behavior
+
+Adding a new file does not automatically update the search index. Click **Index folder** again after adding, removing, or editing text files.
+
+The application indexes:
+
+- Words from the text files
+- Word occurrence counts
+- Line numbers
+- Search snippets
+- Autocomplete terms
+
+Common stop words such as `a`, `the`, `is`, `of`, and `to` are ignored by the tokenizer.
+
+## 2. Changing the Frontend/UI
+
+The main frontend file is:
+
+```text
+wwwroot/index.html
+```
+
+It contains:
+
+- HTML layout
+- Tailwind CSS classes
+- Custom CSS animations
+- JavaScript search behavior
+- API calls to the backend
+
+### Main UI sections
+
+| Section | Element ID or element |
+|---|---|
+| Website title | `h1` |
+| Indexing panel | `indexCard` |
+| Folder input | `folderInput` |
+| Search input | `searchBox` |
+| Search button | `searchBtn` |
+| Search mode | `modeSelect` |
+| Statistics | `statFiles`, `statWords`, `statTokens`, `statBuildMs` |
+| Search results | `results` |
+| Autocomplete list | `suggestBox` |
+| Definition card | `definitionCard` |
+
+## 3. Changing Colors and Styles
+
+The project uses Tailwind CSS through the following line in `wwwroot/index.html`:
+
+```html
+<script src="https://cdn.tailwindcss.com"></script>
+```
+
+Most styling is done through Tailwind classes. For example, the search button uses classes such as:
+
+```text
+bg-indigo-600
+hover:bg-indigo-500
+rounded-full
+px-6
+py-4
+```
+
+You can change the color classes to alternatives such as:
+
+```text
+bg-blue-600
+bg-emerald-600
+bg-purple-600
+bg-rose-600
+```
+
+You can change the shape class:
+
+```text
+rounded-full
+```
+
+to:
+
+```text
+rounded-lg
+rounded-xl
+```
+
+Useful Tailwind classes include:
+
+```text
+bg-slate-900       Background color
+text-white        Text color
+border-indigo-500 Border color
+px-6              Horizontal padding
+py-4              Vertical padding
+mt-4              Top margin
+mb-6              Bottom margin
+gap-3             Space between elements
+```
+
+## 4. Adding Animations
+
+Custom CSS animations are located inside the `<style>` section of `wwwroot/index.html`.
+
+The project already includes a `fade-in` animation:
+
+```css
+.fade-in {
+  animation: fadeIn .18s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+	opacity: 0;
+	transform: translateY(-4px);
+  }
+
+  to {
+	opacity: 1;
+	transform: none;
+  }
+}
+```
+
+Apply it to an element by adding the `fade-in` class:
+
+```html
+<section id="results" class="fade-in space-y-4"></section>
+```
+
+### Example: slide-up animation
+
+Add this inside the existing `<style>` section:
+
+```css
+.slide-up {
+  animation: slideUp .35s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+	opacity: 0;
+	transform: translateY(20px);
+  }
+
+  to {
+	opacity: 1;
+	transform: translateY(0);
+  }
+}
+```
+
+Then apply it to a panel or result container:
+
+```html
+<section id="results" class="slide-up space-y-4"></section>
+```
+
+### Example: loading animation
+
+Add this CSS:
+
+```css
+.loading {
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+	opacity: 1;
+  }
+
+  50% {
+	opacity: .55;
+  }
+}
+```
+
+The JavaScript can apply it while indexing or searching:
+
+```javascript
+$("indexBtn").classList.add("loading");
+```
+
+Remove it when the operation finishes:
+
+```javascript
+$("indexBtn").classList.remove("loading");
+```
+
+## 5. Adding Hover Effects
+
+Tailwind provides hover and transition classes. For example:
+
+```html
+<div class="transition duration-300 hover:-translate-y-1 hover:shadow-2xl">
+  Card content
+</div>
+```
+
+This creates a smooth transition, a slight upward movement, and a larger shadow on hover.
+
+Other useful effects include:
+
+```text
+hover:scale-105
+hover:rotate-1
+hover:bg-slate-800
+hover:border-indigo-500
+hover:text-indigo-300
+```
+
+Use `transition` or `transition-all` so effects animate smoothly.
+
+## 6. Animating Search Result Cards
+
+Search results are generated by JavaScript in `wwwroot/index.html`. Find the HTML template used for each result and add classes such as:
+
+```html
+class="fade-in rounded-xl border border-slate-800 bg-slate-900 p-5
+	   transition duration-300 hover:-translate-y-1 hover:border-indigo-500
+	   hover:shadow-xl"
+```
+
+Each result can then fade in and move slightly upward when hovered.
+
+## 7. Changing the Website Title and Branding
+
+Find:
+
+```html
+<title>Mini Search Engine</title>
+```
+
+Change it to a title such as:
+
+```html
+<title>My Knowledge Search</title>
+```
+
+The visible heading can also be changed. For example:
+
+```html
+<span class="text-emerald-400">My</span><span class="text-white">Search</span>
+```
+
+You can also update the description below the heading.
+
+## 8. Adding Images or a Logo
+
+Place an image inside:
+
+```text
+wwwroot/images/
+```
+
+For example:
+
+```text
+wwwroot/images/logo.png
+```
+
+Then add it to `wwwroot/index.html`:
+
+```html
+<img src="/images/logo.png"
+	 alt="My Search Engine logo"
+	 class="mx-auto mb-4 h-20 w-20 rounded-xl shadow-lg">
+```
+
+Files inside `wwwroot` are served as static website content.
+
+## 9. Testing Frontend Changes
+
+After editing `wwwroot/index.html`:
+
+1. Save the file.
+2. Refresh the browser.
+3. If the old design still appears, use `Ctrl + F5` for a hard refresh.
+4. Use the browser developer tools with `F12` to check for JavaScript errors.
+
+You normally do not need to modify `Program.cs` for visual changes.
+
+Keep the existing element IDs such as `searchBox`, `searchBtn`, `results`, and `suggestBox`, because the JavaScript depends on them. Changing those IDs can break searching, autocomplete, indexing, or statistics.
