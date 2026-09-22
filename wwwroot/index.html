@@ -3,195 +3,67 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>MINI SEARCH ENGINE // DAEMON</title>
+  <title>Mini Search Engine</title>
   <!-- Tailwind CSS (CDN build — perfect for a self-contained local app) -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Cyberpunk display + terminal fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet" />
-  <script>
-    /* Wire Orbitron/Share Tech Mono into Tailwind's font utilities. */
-    tailwind.config = {
-      theme: {
-        extend: {
-          fontFamily: {
-            display: ['Orbitron', 'monospace'],
-            mono: ['"Share Tech Mono"', 'monospace'],
-          },
-        },
-      },
-    };
-  </script>
   <style>
-    /* ═══════════════════════ PLASMA DAEMON THEME ═══════════════════════
-       Palette  : void #07020a · panel #0d0509 · neon red #ff2a4d
-                  hot red #ff1744 · electric cyan #22d3ee · acid #e8ff00
-       Style    : HUD panels with clipped corners, glow borders, scanlines */
-    :root {
-      --void:   #07020a;
-      --panel:  #0d0509;
-      --red:    #ff2a4d;
-      --red-hot:#ff1744;
-      --cyan:   #22d3ee;
-      --acid:   #e8ff00;
-      --dim:    #8b5f6b;
-    }
-
-    html { scrollbar-color: var(--red) var(--void); }
-    /* Scanlines + grid are baked into the static page background (painted once,
-       no fixed overlay layer compositing above the content = no scroll/typing lag). */
-    body {
-      background:
-        repeating-linear-gradient(0deg, rgba(255, 42, 77, .025) 0 1px, transparent 1px 3px),
-        radial-gradient(ellipse 80% 50% at 50% -10%, rgba(255, 23, 68, .10), transparent 60%),
-        radial-gradient(ellipse 60% 40% at 90% 110%, rgba(34, 211, 238, .05), transparent 60%),
-        var(--void);
-    }
-    body::before {
-      /* faint static grid, part of the body's own paint — no extra layer */
-      content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
-      background:
-        linear-gradient(rgba(34, 211, 238, .012) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(34, 211, 238, .012) 1px, transparent 1px);
-      background-size: 44px 44px, 44px 44px;
-    }
-
-    /* ── HUD panel: dark card, red hairline, clipped corners, soft glow ──
-       One outer shadow only: inset shadows + clip-path force costly re-rasters. */
-    .panel {
-      position: relative;
-      background: linear-gradient(180deg, rgba(255, 23, 68, .045), rgba(13, 5, 9, .92) 30%);
-      border: 1px solid rgba(255, 42, 77, .35);
-      clip-path: polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px);
-      box-shadow: 0 0 14px rgba(255, 23, 68, .10);
-    }
-    /* Corner bracket ticks (top-left / bottom-right accents). */
-    .panel::before, .panel::after {
-      content: ""; position: absolute; width: 22px; height: 22px; pointer-events: none;
-    }
-    .panel::before { top: 4px; left: 4px; border-top: 2px solid var(--cyan); border-left: 2px solid var(--cyan); opacity: .8; }
-    .panel::after  { bottom: 4px; right: 4px; border-bottom: 2px solid var(--red); border-right: 2px solid var(--red); opacity: .8; }
-
-    /* ── Neon text glows (single-layer; static elements only) ── */
-    .glow-red  { color: var(--red);  text-shadow: 0 0 10px rgba(255, 23, 68, .6); }
-    .glow-cyan { color: var(--cyan); text-shadow: 0 0 10px rgba(34, 211, 238, .55); }
-
-    /* Cheap card hover: recolor the border instead of a filter re-raster. */
-    .panel.hoverable { transition: border-color .15s; }
-    .panel.hoverable:hover { border-color: rgba(255, 42, 77, .8); }
-
-    /* ── Buttons: angular, hot red, charge-up on hover ── */
-    .btn-daemon {
-      background: linear-gradient(180deg, #ff3d5e, #d10f31);
-      color: #fff; font-family: Orbitron, monospace;
-      clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
-      box-shadow: 0 0 14px rgba(255, 23, 68, .45);
-      transition: filter .15s, transform .1s, box-shadow .15s;
-    }
-    .btn-daemon:hover  { filter: brightness(1.18); box-shadow: 0 0 26px rgba(255, 23, 68, .8); }
-    .btn-daemon:active { transform: scale(.97); }
-    .btn-daemon:disabled { filter: grayscale(.7) brightness(.7); cursor: wait; }
-
-    /* ── Inputs: terminal fields with red focus charge ── */
-    .field {
-      background: rgba(7, 2, 10, .9);
-      border: 1px solid rgba(255, 42, 77, .35);
-      color: #ffd9e0; font-family: "Share Tech Mono", monospace;
-      clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
-      transition: border-color .15s, box-shadow .15s;
-    }
-    .field::placeholder { color: #6d4650; }
-    .field:focus { outline: none; border-color: var(--red-hot); box-shadow: 0 0 18px rgba(255, 23, 68, .5), inset 0 0 12px rgba(255, 23, 68, .08); }
-
-    select.field { appearance: none; -webkit-appearance: none; padding-right: 2rem;
-      background-image: linear-gradient(45deg, transparent 50%, var(--red) 50%), linear-gradient(135deg, var(--red) 50%, transparent 50%);
-      background-position: calc(100% - 18px) 55%, calc(100% - 13px) 55%;
-      background-size: 5px 5px; background-repeat: no-repeat; }
-
-    /* ── <mark> = acid highlight (arrives pre-wrapped from the server) ── */
-    mark { background: var(--acid); color: #1a1a02; padding: 0 3px; font-weight: 600;
-           border-radius: 2px; }
-
-    /* ── Animations ── */
+    /* Small custom layer: <mark> highlight + smooth dropdown animation */
+    mark { background: #fde047; color: #422006; border-radius: 3px; padding: 0 2px; font-weight: 600; }
     .fade-in { animation: fadeIn .18s ease-out; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
-    .pulse-dot { animation: pulseDot 1.6s ease-in-out infinite; }
-    @keyframes pulseDot { 0%, 100% { opacity: 1; } 50% { opacity: .25; } }
-
-    /* ── Scrollbar ── */
-    ::-webkit-scrollbar { width: 9px; height: 9px; }
-    ::-webkit-scrollbar-track { background: var(--void); }
-    ::-webkit-scrollbar-thumb { background: linear-gradient(180deg, var(--red-hot), #7f0722); border-radius: 2px; }
-
-    /* ── Suggestion hover / keyboard-active state (JS toggles .active) ── */
-    .suggestion:hover, .suggestion.active {
-      background: rgba(255, 23, 68, .12);
-      box-shadow: inset 3px 0 0 var(--red);
-    }
+    ::-webkit-scrollbar { width: 8px; } ::-webkit-scrollbar-thumb { background: #334155; border-radius: 8px; }
   </style>
 </head>
 
-<body class="min-h-screen text-[#ffd9e0] antialiased font-mono">
-
-<!-- ────────────────────── HUD status bar (top edge) ────────────────────── -->
-<div class="sticky top-0 z-40 border-b border-[#ff2a4d]/30 bg-[#07020a]/95">
-  <div class="mx-auto flex max-w-3xl items-center justify-between px-4 py-1.5 text-[11px] tracking-widest">
-    <span class="text-[#22d3ee]">DAEMON://<span id="hudHost">localhost:5000</span></span>
-    <span class="flex items-center gap-3">
-      <a href="/classic.html" class="text-[#22d3ee]/70 underline-offset-4 transition hover:text-[#22d3ee] hover:underline">CLASSIC&nbsp;UI</a>
-      <span class="flex items-center gap-2 text-[#ff2a4d]">
-        <span class="pulse-dot inline-block h-2 w-2 rounded-full bg-[#ff2a4d] shadow-[0_0_8px_#ff2a4d]"></span>
-        ONLINE
-      </span>
-    </span>
-  </div>
-</div>
-
+<body class="min-h-screen bg-slate-950 text-slate-200 antialiased">
 <div class="mx-auto max-w-3xl px-4 pb-24">
 
   <!-- ─────────────────────────── Header / brand ─────────────────────────── -->
-  <header class="pb-8 pt-12 text-center">
-    <h1 class="font-display text-5xl font-black tracking-widest">
-      <span class="glow-red">MINI</span><span class="text-[#ffd9e0]">SEARCH</span>
+  <header class="pt-14 pb-8 text-center">
+    <h1 class="text-5xl font-bold tracking-tight">
+      <span class="text-indigo-400">Mini</span><span class="text-white">Search</span>
+      <span class="align-super text-xs font-normal text-slate-500">.txt engine</span>
     </h1>
-    <p class="mt-1 text-[10px] uppercase tracking-[0.5em] text-[#22d3ee]/70">.txt&nbsp;engine&nbsp;//&nbsp;v2.0</p>
-    <p class="mt-4 text-xs tracking-wider text-[#8b5f6b]">
-      INVERTED INDEX &nbsp;·&nbsp; TRIE AUTOCOMPLETE &nbsp;·&nbsp; LIVE LATENCY BENCHMARKS
+    <p class="mt-3 text-sm text-slate-400">
+      Inverted Index &nbsp;·&nbsp; Trie autocomplete &nbsp;·&nbsp; live latency benchmarks
     </p>
     <!-- Phase 2: external seed status (MariaDB or GitHub JSON) -->
-    <p id="seedLine" class="mt-2 text-xs text-[#8b5f6b]"></p>
+    <p id="seedLine" class="mt-2 text-xs text-slate-500"></p>
   </header>
 
   <!-- ────────────────────── Indexing panel (folder + status) ───────────────────── -->
-  <section id="indexCard" class="panel mb-6 p-4">
+  <section id="indexCard" class="mb-6 rounded-2xl border border-slate-800 bg-slate-900/70 p-4 shadow-xl">
     <div class="flex flex-col gap-3 sm:flex-row">
       <input id="folderInput" type="text"
-             placeholder="// folder of .txt files (empty = ./documents)"
-             class="field flex-1 px-4 py-2.5 text-sm" />
-      <button id="indexBtn" class="btn-daemon px-6 py-2.5 text-xs font-bold tracking-widest">
-        INDEX&nbsp;FOLDER
+             placeholder="Folder of .txt files (empty = ./documents)"
+             class="flex-1 rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm
+                    text-slate-200 placeholder-slate-600 outline-none focus:border-indigo-500" />
+      <button id="indexBtn"
+              class="rounded-lg bg-indigo-600 px-5 py-2 text-sm font-semibold text-white
+                     transition hover:bg-indigo-500 active:scale-[.98]">
+        Index folder
       </button>
     </div>
-    <div id="indexStatus" class="mt-3 hidden px-3 py-2 text-sm"></div>
+    <div id="indexStatus" class="mt-3 hidden rounded-lg px-3 py-2 text-sm"></div>
   </section>
 
   <!-- ──────────────────────── Corpus stats (live) ──────────────────────── -->
   <section class="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-    <div class="panel p-3 text-center">
-      <div id="statFiles" class="font-display text-2xl font-bold glow-cyan">–</div>
-      <div class="mt-1 text-[10px] uppercase tracking-[0.25em] text-[#8b5f6b]">Files</div>
+    <div class="rounded-xl border border-slate-800 bg-slate-900/70 p-3 text-center">
+      <div id="statFiles" class="text-2xl font-bold text-indigo-300">–</div>
+      <div class="text-xs uppercase tracking-wide text-slate-500">Files</div>
     </div>
-    <div class="panel p-3 text-center">
-      <div id="statWords" class="font-display text-2xl font-bold glow-red">–</div>
-      <div class="mt-1 text-[10px] uppercase tracking-[0.25em] text-[#8b5f6b]">Unique words</div>
+    <div class="rounded-xl border border-slate-800 bg-slate-900/70 p-3 text-center">
+      <div id="statWords" class="text-2xl font-bold text-emerald-300">–</div>
+      <div class="text-xs uppercase tracking-wide text-slate-500">Unique words</div>
     </div>
-    <div class="panel p-3 text-center">
-      <div id="statTokens" class="font-display text-2xl font-bold text-[#e8ff00]" style="text-shadow:0 0 10px rgba(232,255,0,.5)">–</div>
-      <div class="mt-1 text-[10px] uppercase tracking-[0.25em] text-[#8b5f6b]">Tokens</div>
+    <div class="rounded-xl border border-slate-800 bg-slate-900/70 p-3 text-center">
+      <div id="statTokens" class="text-2xl font-bold text-amber-300">–</div>
+      <div class="text-xs uppercase tracking-wide text-slate-500">Tokens</div>
     </div>
-    <div class="panel p-3 text-center">
-      <div id="statBuildMs" class="font-display text-2xl font-bold glow-cyan">–</div>
-      <div class="mt-1 text-[10px] uppercase tracking-[0.25em] text-[#8b5f6b]">Index ms</div>
+    <div class="rounded-xl border border-slate-800 bg-slate-900/70 p-3 text-center">
+      <div id="statBuildMs" class="text-2xl font-bold text-rose-300">–</div>
+      <div class="text-xs uppercase tracking-wide text-slate-500">Index ms</div>
     </div>
   </section>
 
@@ -200,27 +72,34 @@
     <div class="flex gap-2">
       <div class="relative flex-1">
         <input id="searchBox" type="text" autocomplete="off" spellcheck="false"
-               placeholder='&gt; try "algorithm" · "graph sorting" (AND) · "graph or tree" (OR)'
-               class="field w-full px-6 py-4 text-lg tracking-wide" />
+               placeholder='Try "algorithm"  ·  "graph sorting" (AND)  ·  "graph or tree" (OR)'
+               class="w-full rounded-full border border-slate-700 bg-slate-900 px-6 py-4
+                      text-lg text-white placeholder-slate-600 shadow-2xl outline-none
+                      transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20" />
         <!-- Trie-powered suggestions, shown while typing -->
         <div id="suggestBox"
-             class="panel absolute left-4 right-4 top-full z-20 mt-2 hidden overflow-hidden"></div>
+             class="absolute left-4 right-4 top-full z-20 mt-2 hidden overflow-hidden
+                    rounded-xl border border-slate-700 bg-slate-900 shadow-2xl"></div>
       </div>
-      <select id="modeSelect" class="field px-4 text-sm">
+      <select id="modeSelect"
+              class="rounded-full border border-slate-700 bg-slate-900 px-4 text-sm text-slate-300
+                     outline-none focus:border-indigo-500">
         <option value="and" selected>AND</option>
         <option value="or">OR</option>
       </select>
-      <button id="searchBtn" class="btn-daemon px-6 py-4 text-xs font-bold tracking-widest">
-        SEARCH
+      <button id="searchBtn"
+              class="rounded-full bg-indigo-600 px-6 py-4 text-sm font-semibold text-white
+                     transition hover:bg-indigo-500 active:scale-[.98]">
+        Search
       </button>
     </div>
   </section>
 
   <!-- ─────────────────── Benchmark latency chips (live) ─────────────────── -->
   <section id="metrics" class="mb-6 hidden flex-wrap items-center gap-2 text-xs">
-    <span id="metricSearch" class="border border-[#22d3ee]/40 bg-[#22d3ee]/5 px-3 py-1 text-[#22d3ee]"></span>
-    <span id="metricMode"   class="border border-[#ff2a4d]/40 bg-[#ff2a4d]/5 px-3 py-1 glow-red"></span>
-    <span id="metricCount"  class="border border-[#8b5f6b]/40 bg-white/5 px-3 py-1 text-[#ffd9e0]/80"></span>
+    <span id="metricSearch" class="rounded-full bg-slate-800 px-3 py-1 font-mono text-emerald-300"></span>
+    <span id="metricMode"   class="rounded-full bg-slate-800 px-3 py-1 font-mono text-indigo-300"></span>
+    <span id="metricCount"  class="rounded-full bg-slate-800 px-3 py-1 font-mono text-slate-300"></span>
   </section>
 
   <!-- ───────────── Phase 2: dictionary definition card ───────────── -->
@@ -230,9 +109,9 @@
   <section id="results" class="space-y-4"></section>
 
   <!-- Friendly empty / helper states -->
-  <section id="placeholder" class="mt-16 text-center text-[#8b5f6b]">
-    <p class="font-display text-6xl glow-red">▞▚</p>
-    <p class="mt-4 text-xs uppercase tracking-[0.3em]">Awaiting query…</p>
+  <section id="placeholder" class="mt-16 text-center text-slate-600">
+    <p class="text-6xl">🔎</p>
+    <p class="mt-4 text-sm">Results with highlighted snippets will appear here.</p>
   </section>
 </div>
 
@@ -265,10 +144,10 @@ const ms = (v) => (v == null ? "–" : Number(v).toFixed(2) + " ms");
 
 function showStatus(kind, text) {
   const el = $("indexStatus");
-  el.className = "mt-3 border px-3 py-2 text-sm " + (
-    kind === "ok"   ? "border-[#22d3ee]/50 bg-[#22d3ee]/10 text-[#22d3ee]" :
-    kind === "err"  ? "border-[#ff2a4d]/50 bg-[#ff2a4d]/10 text-[#ff5c78]"   :
-                      "border-[#8b5f6b]/40 bg-white/5 text-[#ffd9e0]/80");
+  el.className = "mt-3 rounded-lg px-3 py-2 text-sm " + (
+    kind === "ok"   ? "bg-emerald-500/10 text-emerald-300" :
+    kind === "err"  ? "bg-rose-500/10 text-rose-300"       :
+                      "bg-slate-800 text-slate-300");
   el.textContent = text;
   el.classList.remove("hidden");
 }
@@ -286,12 +165,12 @@ async function loadStats() {
     // Phase 2: report how many dictionary terms were seeded and via which provider.
     const seed = $("seedLine");
     if (stats.seededTerms > 0) {
-      seed.innerHTML = "📚 <b class=\"text-[#22d3ee]\">" + stats.seededTerms +
+      seed.innerHTML = "📚 <b class=\"text-slate-300\">" + stats.seededTerms +
         "</b> dictionary terms seeded via " + esc(stats.seedProvider) +
         (stats.seedSucceeded ? "" :
-          " <span class=\"text-[#ff5c78]\">⚠ " + esc(stats.seedError || "") + "</span>");
+          " <span class=\"text-rose-400\">⚠ " + esc(stats.seedError || "") + "</span>");
     } else if (stats.seedError) {
-      seed.innerHTML = "<span class=\"text-[#ff5c78]\">⚠ seeding failed: " +
+      seed.innerHTML = "<span class=\"text-rose-400\">⚠ seeding failed: " +
         esc(stats.seedError) + "</span>";
     } else {
       seed.textContent = "no dictionary seeds loaded";
@@ -340,9 +219,10 @@ function renderSuggestions(data) {
 
   suggestBox.innerHTML = suggestItems.map((s, i) => `
     <div data-i="${i}"
-         class="suggestion flex cursor-pointer items-center justify-between px-5 py-2.5 text-sm">
-      <span class="text-[#ffd9e0]"><b class="text-[#ff5c78]">${esc(data.prefix)}</b><span class="text-[#22d3ee]">${esc(s.word.slice(data.prefix.length))}</span></span>
-      <span class="ml-4 text-xs text-[#8b5f6b]">${s.frequency}× in corpus</span>
+         class="suggestion cursor-pointer px-5 py-2.5 text-sm hover:bg-slate-800
+                flex items-center justify-between">
+      <span class="text-slate-200"><b class="text-indigo-300">${esc(data.prefix)}</b>${esc(s.word.slice(data.prefix.length))}</span>
+      <span class="ml-4 font-mono text-xs text-slate-500">${s.frequency}× in corpus</span>
     </div>`).join("");
   suggestBox.classList.remove("hidden");
 
@@ -397,7 +277,7 @@ searchBox.addEventListener("keydown", (e) => {
   else return;
 
   suggestBox.querySelectorAll(".suggestion").forEach((el, i) => {
-    el.classList.toggle("active", i === activeIndex);
+    el.classList.toggle("bg-slate-800", i === activeIndex);
   });
 });
 
@@ -441,14 +321,14 @@ function renderDefinition(def) {
   if (!def || !def.definition) { box.classList.add("hidden"); return; }
 
   box.innerHTML = `
-    <div class="panel fade-in p-5">
+    <div class="fade-in rounded-2xl border border-amber-500/30 bg-amber-500/5 p-5 shadow-lg">
       <div class="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 class="font-display text-lg font-bold glow-cyan">📖 ${esc(def.word)}</h2>
-        <span class="border border-[#e8ff00]/40 bg-[#e8ff00]/5 px-3 py-1 text-xs text-[#e8ff00]">
+        <h2 class="text-lg font-semibold text-amber-200">📖 ${esc(def.word)}</h2>
+        <span class="rounded-full bg-amber-500/10 px-3 py-1 text-xs font-mono text-amber-300">
           seeded via ${esc(def.provider)}
         </span>
       </div>
-      <p class="mt-2 text-sm leading-relaxed text-[#ffd9e0]/85">${esc(def.definition)}</p>
+      <p class="mt-2 text-sm leading-relaxed text-slate-300">${esc(def.definition)}</p>
     </div>`;
   box.classList.remove("hidden");
 }
@@ -462,43 +342,43 @@ function renderResults(data) {
 
   if (!data.results.length) {
     resultsBox.innerHTML = `
-      <div class="panel p-8 text-center">
-        <p class="font-display text-4xl text-[#8b5f6b]">∅</p>
-        <p class="mt-3 text-[#ffd9e0]/80">No documents matched
-           <b class="glow-red">"${esc(data.query)}"</b>.</p>
-        <p class="mt-1 text-xs text-[#8b5f6b]">Check spelling, or try the OR mode.</p>
+      <div class="rounded-2xl border border-slate-800 bg-slate-900/70 p-8 text-center">
+        <p class="text-4xl">🤷</p>
+        <p class="mt-3 text-slate-400">No documents matched
+           <b class="text-white">"${esc(data.query)}"</b>.</p>
+        <p class="mt-1 text-sm text-slate-600">Check spelling, or try the OR mode.</p>
       </div>`;
     return;
   }
 
   // One card per matching document; <mark> snippets arrive pre-highlighted.
   resultsBox.innerHTML = data.results.map((r) => `
-    <article class="panel hoverable fade-in p-5">
+    <article class="fade-in rounded-2xl border border-slate-800 bg-slate-900/70 p-5
+                    shadow-lg transition hover:border-slate-700">
       <div class="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 class="font-display text-lg font-bold glow-cyan">▸ ${esc(r.documentName)}</h2>
-        <span class="border border-[#ff2a4d]/40 bg-[#ff2a4d]/5 px-3 py-1 text-xs text-[#ff5c78]">
+        <h2 class="text-lg font-semibold text-indigo-300">📄 ${esc(r.documentName)}</h2>
+        <span class="rounded-full bg-indigo-500/10 px-3 py-1 text-xs font-mono text-indigo-300">
           relevance ${r.relevanceScore} · ${r.occurrenceCount}×
         </span>
       </div>
-      <p class="mt-1 text-xs text-[#8b5f6b]">${esc(r.filePath)}</p>
+      <p class="mt-1 font-mono text-xs text-slate-500">${esc(r.filePath)}</p>
 
       <div class="mt-3 flex flex-wrap gap-1.5">
         ${r.lineNumbers.map((n) =>
-          `<span class="border border-[#22d3ee]/30 bg-[#22d3ee]/5 px-2 py-0.5 text-xs text-[#22d3ee]/90">line ${n}</span>`
+          `<span class="rounded bg-slate-800 px-2 py-0.5 text-xs text-slate-400">line ${n}</span>`
         ).join("")}
       </div>
 
       <div class="mt-3 space-y-2">
         ${r.snippets.map((s) =>
-          `<p class="border-l-2 border-[#ff2a4d]/60 bg-black/40 p-3 text-sm leading-relaxed text-[#ffd9e0]/85">${s}</p>`
-        ).join("") || '<p class="text-sm text-[#8b5f6b]">(no preview window)</p>'}
+          `<p class="rounded-lg bg-slate-950/60 p-3 text-sm leading-relaxed text-slate-300">${s}</p>`
+        ).join("") || '<p class="text-sm text-slate-600">(no preview window)</p>'}
       </div>
     </article>`).join("");
 }
 
 /* ─────────────────────────────── boot ─────────────────────────────── */
 
-$("hudHost").textContent = location.host || "localhost:5000";
 loadStats();
 searchBox.focus();
 </script>

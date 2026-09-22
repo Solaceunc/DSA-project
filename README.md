@@ -17,8 +17,6 @@ complete Data Structures & Algorithms showcase on top of ASP.NET Core Minimal AP
 - ⏱️ **Stopwatch benchmarks** — exact `indexTimeMs` / `searchTimeMs` returned by every call and displayed live
 - ✨ **Highlighted snippets** — ~100-character previews with `<mark>` tags, extracted from the original text
 - 🚀 **One-command start** — `dotnet run` opens the GUI at http://localhost:5000 automatically
-- 🎨 **Two built-in themes** — a cyberpunk "Plasma Daemon" UI (default, `/`) and the classic
-clean UI (`/classic.html`), switchable from a link at the top of either page
 - 📴 **Offline seeding** — if the GitHub dictionary is unreachable (private repo, no internet),
 the bundled `data/dictionary.json` is loaded automatically instead
 
@@ -27,13 +25,12 @@ the bundled `data/dictionary.json` is loaded automatically instead
 Grab a ready-to-run build from the
 [Releases page](https://github.com/Sea8611/I.T-211-Project/releases) — no .NET install needed:
 
-| Release | UI theme you get | File |
-|---------|------------------|------|
-| **v1.2-CYBERPUNK** (latest) | Cyberpunk "Plasma Daemon" (default) + classic one click away | `MiniSearchEngine-v1.2-win-x64.zip` |
-| **v1.1-CLASSIC** | Classic clean UI (default) + cyberpunk one click away | `MiniSearchEngine-v1.1-win-x64.zip` |
-| Source code | Both themes included — swap the default via the guide below | `MiniSearchEngine-v*-source.zip` |
+| Release | File |
+|---------|------|
+| **v1.2** (latest) | `MiniSearchEngine-v1.2-win-x64.zip` |
+| Source code | `MiniSearchEngine-v*-source.zip` |
 
-Each zip contains `MiniSearchEngine.exe`, the `documents/` sample corpus, and
+The zip contains `MiniSearchEngine.exe`, the `documents/` sample corpus, and
 `data/dictionary.json`. Unzip anywhere and double-click the exe — the server starts and
 your browser opens http://localhost:5000 by itself.
 
@@ -51,8 +48,7 @@ your browser opens http://localhost:5000 by itself.
 ## Changing the GUI (theming guide)
 
 The entire interface is **one HTML file** — there is no framework build step. Everything
-you see (colors, fonts, layout, text) lives in [`wwwroot/index.html`](wwwroot/index.html)
-(cyberpunk theme) and [`wwwroot/classic.html`](wwwroot/classic.html) (classic theme).
+you see (colors, fonts, layout, text) lives in [`wwwroot/index.html`](wwwroot/index.html).
 
 **Edit → see it live in 10 seconds, no recompile:**
 
@@ -66,16 +62,10 @@ you see (colors, fonts, layout, text) lives in [`wwwroot/index.html`](wwwroot/in
 
 | What you want to change | Where |
 |--------------------------|-------|
-| Colors (neon red, cyan, background) | the `:root { --void: …; --red: …; }` CSS block |
-| Glow strength, scanlines, borders | the `.panel`, `.glow-red`, `.scanlines` CSS rules |
-| Fonts | the Google Fonts `<link>` + `tailwind.config.fontFamily` |
-| Headline text / tagline | the `<h1>` and `<p>` inside `<header>` |
+| Colors | Tailwind classes in the markup (`indigo-600`, `slate-*`, …) and the `mark` CSS rule |
+| Fonts / headline text / tagline | the `<h1>`, `<p>` tags and Google-Fonts links in `<head>` |
 | Placeholder text, button labels | the `placeholder=` attributes and button elements |
 | Result card layout | the `renderResults()` JavaScript template literals |
-
-**Make your own theme the default:** rename the current `index.html` → `cyberpunk.html`,
-yours → `index.html`, and swap the link targets in the top-bar switcher of each file.
-Nothing else changes — both themes are always reachable from either page.
 
 **After editing, ship it:** rebuild the exe with the commands in the Releases section, or
 just zip the exe folder with your updated `wwwroot/` — the GUI is read from disk at runtime.
@@ -231,8 +221,7 @@ SearchEngine.cs             inverted index, crawler, ranking, snippets, benchmar
 Trie.cs / TrieNode.cs       from-scratch prefix tree
 Tokenizer.cs                punctuation stripping, lowercasing, stop-words
 Models.cs                   SearchResult posting + all API DTOs
-wwwroot/index.html          Tailwind single-page GUI — cyberpunk theme (default, "/")
-wwwroot/classic.html        Tailwind single-page GUI — classic theme ("/classic.html")
+wwwroot/index.html          Tailwind single-page GUI (autocomplete, metrics, results)
 data/dictionary.json        bundled seed dictionary (offline fallback for the GitHub provider)
 documents/                  sample corpus (4 files)
 ```
