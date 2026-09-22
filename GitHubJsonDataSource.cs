@@ -7,6 +7,12 @@ namespace MiniSearchEngine;
 /// Seed source backed by a raw JSON file served from GitHub
 /// (e.g. https://raw.githubusercontent.com/&lt;user&gt;/&lt;repo&gt;/main/dictionary.json).
 ///
+/// <b>Offline/private-repo fallback:</b> raw.githubusercontent.com serves 404 for
+/// private repositories when the request is anonymous. When the fetch fails, this
+/// provider automatically falls back to the bundled <c>data/dictionary.json</c>
+/// copied next to the executable, so the dictionary feature still works with no
+/// network and no public repo.
+///
 /// Accepted JSON shapes (deserialized case-insensitively):
 /// <code>
 ///   [ { "term": "algorithm", "definition": "…" }, … ]            // plain array
@@ -18,6 +24,7 @@ public sealed class GitHubJsonDataSource : IDataSource
 {
     private readonly HttpClient _http;
     private readonly string _rawUrl;
+    private readonly string _localFallbackPath;
 
     /// <inheritdoc />
     public string ProviderName => "GitHub";
@@ -27,10 +34,14 @@ public sealed class GitHubJsonDataSource : IDataSource
 
     /// <param name="httpClient">Application HttpClient (typed-client lifetime).</param>
     /// <param name="rawUrl">Full raw.githubusercontent.com URL of the dictionary file.</param>
-    public GitHubJsonDataSource(HttpClient httpClient, string rawUrl)
+    /// <param name="localFallbackPath">Bundled JSON used when the remote fetch fails
+    /// (private repo, offline machine, …). May be null to disable the fallback.</param>
+    public GitHubJsonDataSource(HttpClient httpClient, string rawUrl,
+                                string? localFallbackPath = null)
     {
         _http = httpClient;
         _rawUrl = rawUrl;
+        _localFallbackPath = localFallbackPath ?? string.Empty;
     }
 
     /// <inheritdoc />
@@ -60,6 +71,28 @@ public sealed class GitHubJsonDataSource : IDataSource
         catch (Exception ex)
         {
             stopwatch.Stop();
+
+            // Private repos and offline machines land here — try the bundled file.
+            if (_localFallbackPath.Length > 0 && File.Exists(_localFallbackPath))
+            {
+                try
+                {
+                    var json = File.ReadAllText(_localFallbackPath);
+                    var terms = Parse(json);
+                    LastError = null;
+                    Console.WriteLine(
+                        $"[seed] Remote fetch failed ({ex.Message}); loaded {terms.Count} " +
+                        $"term(s) from bundled file {_localFallbackPath} instead.");
+                    return terms;
+                }
+                catch (Exception fallbackEx)
+                {
+                    LastError = $"Bundled dictionary fallback failed: {fallbackEx.Message}";
+                    Console.WriteLine($"[seed] {LastError}");
+                    return [];
+                }
+            }
+
             LastError = $"GitHub seed failed: {ex.Message}";
             Console.WriteLine($"[seed] {LastError}");
             return [];                                  // app stays fully functional

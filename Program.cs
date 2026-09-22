@@ -52,11 +52,15 @@ else
 {
     // GitHub raw JSON: the named "GitHub" HttpClient carries the base address;
     // the provider only needs the repository-relative raw URL from config.
+    // A bundled data/dictionary.json next to the exe acts as an automatic
+    // offline/private-repo fallback when the remote fetch fails.
     var rawUrl = seedConfig["GitHub:RawUrl"] ?? string.Empty;
+    var bundledDictionary = Path.Combine(AppContext.BaseDirectory, "data", "dictionary.json");
     builder.Services.AddSingleton<IDataSource>(sp =>
     {
         var factory = sp.GetRequiredService<IHttpClientFactory>();
-        return new GitHubJsonDataSource(factory.CreateClient("GitHub"), rawUrl);
+        return new GitHubJsonDataSource(factory.CreateClient("GitHub"), rawUrl,
+                                        bundledDictionary);
     });
 }
 
