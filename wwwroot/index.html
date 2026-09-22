@@ -7,90 +7,195 @@
   <!-- Tailwind CSS (CDN build — perfect for a self-contained local app) -->
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    /* Dark-mode-only enterprise look: deep slate gradient, charcoal workspace card */
+    /* Dark-mode replica of the reference dashboard: deep navy gradient,
+       one big rounded workspace card, pill tabs, prominent selector. */
     body {
       background:
-        radial-gradient(ellipse 90% 60% at 50% -20%, rgba(56, 130, 246, .08), transparent 60%),
-        linear-gradient(165deg, #0b1220 0%, #0d1526 50%, #101b30 100%);
+        radial-gradient(ellipse 90% 55% at 50% -15%, rgba(56, 130, 246, .10), transparent 60%),
+        linear-gradient(160deg, #0a1120 0%, #0c1526 45%, #0f1b31 100%);
       min-height: 100vh;
     }
     mark { background: #fde047; color: #422006; border-radius: 3px; padding: 0 2px; font-weight: 600; }
     .fade-in { animation: fadeIn .18s ease-out; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
     ::-webkit-scrollbar { width: 8px; } ::-webkit-scrollbar-thumb { background: #334155; border-radius: 8px; }
-    /* Dropdown chevron rotation */
     .chev { transition: transform .15s; }
     .open .chev { transform: rotate(180deg); }
+    /* Donut: conic-gradient ring with a punched center */
+    .donut { border-radius: 9999px; position: relative; }
+    .donut::after {
+      content: ""; position: absolute; inset: 18%;
+      background: #0d1526; border-radius: 9999px;
+      box-shadow: 0 0 0 1px rgba(148,163,184,.12);
+    }
+    .donut-center { position: absolute; inset: 0; z-index: 1; display: grid; place-items: center; text-align: center; }
   </style>
 </head>
 
 <body class="text-slate-200 antialiased">
-<div class="mx-auto max-w-4xl px-4 pb-16">
+<div class="mx-auto max-w-5xl px-4 pb-20">
 
-  <!-- ─────────────────────────── Header / brand ─────────────────────────── -->
-  <header class="flex items-end justify-between pt-10 pb-6">
-    <h1 class="text-3xl font-bold tracking-tight text-slate-100">
-      Mini Search Engine
+  <!-- ─────────── Big page title + awards-style badge (reference hero) ─────────── -->
+  <header class="flex items-start justify-between pt-12 pb-8">
+    <h1 class="max-w-md text-4xl font-light leading-tight tracking-tight text-slate-100 sm:text-5xl">
+      A Collaborative<br />Document Search Tool
     </h1>
-    <p class="text-xs text-slate-500">
-      .txt engine · inverted index · trie autocomplete
-    </p>
+    <div class="select-none text-right">
+      <p class="text-3xl font-black leading-none tracking-tight text-slate-200">MINI<br />SEARCH</p>
+      <p class="mt-1 text-[10px] font-semibold uppercase tracking-[0.35em] text-slate-400">engine</p>
+      <p class="mt-2 text-[10px] leading-relaxed text-slate-500">inverted index<br />2026</p>
+    </div>
   </header>
 
-  <!-- ──────────────────────── Charcoal workspace card ──────────────────────── -->
-  <main class="rounded-xl border border-slate-700/70 bg-slate-900/80 shadow-[0_18px_50px_-20px_rgba(0,0,0,.7)]">
+  <!-- ─────────────────────── The big workspace card ─────────────────────── -->
+  <main class="rounded-3xl border border-slate-700/60 bg-slate-900/85 shadow-[0_30px_80px_-30px_rgba(0,0,0,.8)]">
 
-    <!-- Card title bar -->
-    <div class="flex items-center gap-3 border-b border-slate-800 px-6 py-4">
-      <span class="text-slate-500">🔍</span>
-      <h2 class="text-lg font-semibold text-slate-100">Document Search</h2>
-      <span id="seedBadge" class="ml-auto rounded-full bg-slate-800 px-3 py-1 text-xs text-slate-400"></span>
+    <!-- Card title bar: back chevron + dynamic scope title -->
+    <div class="flex items-center gap-3 border-b border-slate-800 px-7 py-5">
+      <button id="backBtn" title="Back to all files"
+              class="text-xl font-bold text-sky-500 transition hover:text-sky-400">‹</button>
+      <h2 id="scopeTitle" class="text-xl font-bold tracking-tight text-slate-100">All files</h2>
     </div>
 
-    <div class="px-6 py-5">
+    <div class="px-7 py-6">
 
-      <!-- ────────────────── Toolbar: tabs + file-switcher dropdown ────────────────── -->
-      <div class="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center">
-        <!-- Tabs (visual mode selector) -->
-        <div class="flex rounded-lg border border-slate-700 bg-slate-800/60 p-1 text-sm">
-          <button id="tabAnd" class="rounded-md bg-slate-700 px-5 py-1.5 font-semibold text-white shadow-sm">AND</button>
-          <button id="tabOr"  class="rounded-md px-5 py-1.5 font-medium text-slate-400 transition hover:text-slate-200">OR</button>
+      <!-- ────────── Toolbar: tab pills (AND/OR) + the big file selector ────────── -->
+      <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div class="flex rounded-xl border border-slate-700/70 bg-slate-800/50 p-1 text-sm">
+          <button id="tabAnd" class="rounded-lg bg-slate-600/80 px-6 py-2 font-semibold text-white shadow-sm ring-1 ring-slate-500/40">AND</button>
+          <button id="tabOr"  class="rounded-lg px-6 py-2 font-medium text-slate-400 transition hover:text-slate-200">OR</button>
         </div>
 
-        <!-- File-switcher dropdown (like the reference's assessment selector) -->
-        <div id="fileSelectWrap" class="relative sm:ml-auto sm:w-80">
+        <!-- File selector (reference: bordered box + label + solid chevron) -->
+        <div id="fileSelectWrap" class="relative sm:ml-auto sm:w-96">
           <button id="fileSelectBtn" type="button"
-                  class="flex w-full items-center justify-between rounded-lg border-2 border-sky-500 bg-slate-800 px-4 py-2.5 text-sm font-medium text-slate-200 shadow-sm">
+                  class="flex w-full items-center justify-between rounded-xl border-2 border-sky-500 bg-slate-800/80 px-5 py-3 text-sm font-medium text-slate-200 shadow-sm">
             <span class="flex min-w-0 items-center gap-2">
-              <span class="text-slate-500">📄</span>
               <span id="fileSelectLabel" class="truncate">All files</span>
             </span>
             <svg class="chev h-4 w-4 shrink-0 text-sky-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.23 8.29a.75.75 0 010-1.08z" clip-rule="evenodd"/></svg>
           </button>
 
-          <!-- Dropdown panel: search box + file list + footer -->
-          <div id="fileSelectPanel" class="absolute left-0 right-0 top-full z-30 mt-2 hidden overflow-hidden rounded-xl border border-slate-700 bg-slate-900 shadow-2xl">
-            <div class="border-b border-slate-800 p-3">
-              <div class="flex items-center gap-2 rounded-lg border-2 border-sky-500 bg-slate-800 px-3 py-2">
+          <!-- Dropdown: search box → all-files row → section label → file rows → footer -->
+          <div id="fileSelectPanel" class="absolute left-0 right-0 top-full z-30 mt-2 hidden overflow-hidden rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl">
+            <div class="p-3">
+              <div class="flex items-center gap-2 rounded-xl border-2 border-sky-500 bg-slate-800/70 px-4 py-2.5">
                 <span class="text-slate-500">🔍</span>
-                <input id="fileFilter" type="text" placeholder="Search files…"
+                <input id="fileFilter" type="text" placeholder="Search..."
                        class="w-full bg-transparent text-sm text-slate-200 outline-none placeholder:text-slate-500" />
               </div>
             </div>
-            <div class="px-3 pt-3 pb-1">
+            <div class="px-4 py-2.5">
+              <div data-file="" class="file-row flex cursor-pointer items-center gap-3 px-1 py-2 text-sm text-slate-300 hover:bg-slate-800/70 rounded-lg">
+                <span class="text-slate-400">🗂</span> All files
+                <span data-check="" class="ml-auto hidden text-sky-400">✓</span>
+              </div>
+            </div>
+            <div class="border-t border-slate-800 px-4 pt-3 pb-1">
               <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Indexed documents</p>
             </div>
-            <div id="fileList" class="max-h-64 overflow-y-auto pb-2"></div>
-            <div class="border-t border-slate-800 bg-slate-800/60 px-4 py-2.5 text-xs text-slate-400">
-              <span id="fileCountLine">0 documents indexed</span>
+            <div id="fileList" class="max-h-64 overflow-y-auto px-2 pb-2"></div>
+            <div class="border-t border-slate-800 px-4 py-3 text-xs text-slate-400">
+              <span class="mr-1">⏱</span><span id="fileCountLine">0 documents indexed</span>
+              <span class="ml-1 text-slate-600" title="Documents currently in the inverted index">ⓘ</span>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- ────────────────────── Indexing panel (folder + status) ────────────────────── -->
-      <section id="indexCard" class="mb-5 rounded-lg border border-slate-800 bg-slate-800/30 p-4">
-        <div class="flex flex-col gap-3 sm:flex-row">
+      <!-- ──────────────── Two-panel row: index overview + distribution ──────────────── -->
+      <div class="mb-6 grid gap-4 lg:grid-cols-5">
+
+        <!-- Index overview (reference: "Overall questionnaire score" card) -->
+        <section class="rounded-2xl border border-slate-800 bg-slate-800/30 p-6 lg:col-span-3">
+          <h3 class="text-lg font-semibold text-slate-100">Overall index score</h3>
+          <p class="mt-0.5 text-sm text-slate-500">Live stats from the inverted index and Trie</p>
+
+          <div class="mt-5 flex items-center gap-4">
+            <span class="grid h-12 w-12 place-items-center rounded-xl bg-amber-400/15 text-xl font-bold text-amber-400">Σ</span>
+            <div>
+              <div class="flex flex-wrap items-baseline gap-2">
+                <span id="bigWords" class="text-4xl font-bold tracking-tight text-slate-100">–</span>
+                <span id="seedDelta" class="hidden rounded-md bg-emerald-500/15 px-2 py-0.5 text-xs font-semibold text-emerald-400"></span>
+              </div>
+              <p class="mt-1 text-lg font-semibold text-amber-400" id="statusWord">Awaiting index</p>
+              <p class="text-sm text-slate-500" id="scoreCaption">index the documents folder to begin</p>
+            </div>
+          </div>
+
+          <!-- Meters (reference: letter badges + progress bars) -->
+          <div class="mt-6 space-y-3">
+            <div class="flex items-center gap-3">
+              <span class="grid h-8 w-10 place-items-center rounded-lg bg-sky-500/10 text-xs font-bold text-sky-400 ring-1 ring-sky-500/30">ms</span>
+              <div class="flex-1">
+                <div class="flex justify-between text-xs text-slate-400"><span>Index build</span><span id="meterMsLabel">–</span></div>
+                <div class="mt-1 h-1.5 rounded-full bg-slate-700/70"><div id="meterMs" class="h-1.5 rounded-full bg-amber-400 transition-all" style="width:0%"></div></div>
+              </div>
+            </div>
+            <div class="flex items-center gap-3">
+              <span class="grid h-8 w-10 place-items-center rounded-lg bg-emerald-500/10 text-xs font-bold text-emerald-400 ring-1 ring-emerald-500/30">dict</span>
+              <div class="flex-1">
+                <div class="flex justify-between text-xs text-slate-400"><span>Dictionary coverage</span><span id="meterDictLabel">–</span></div>
+                <div class="mt-1 h-1.5 rounded-full bg-slate-700/70"><div id="meterDict" class="h-1.5 rounded-full bg-emerald-400 transition-all" style="width:0%"></div></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Match distribution (reference: "Asset overview" + donut + dot legend) -->
+        <section class="rounded-2xl border border-slate-800 bg-slate-800/30 p-6 lg:col-span-2">
+          <h3 class="text-lg font-semibold text-slate-100">Match distribution</h3>
+          <p class="mt-0.5 text-sm text-slate-500">Where the current query hits across documents</p>
+
+          <div class="mt-5 flex items-center gap-5">
+            <div id="donut" class="donut h-28 w-28 shrink-0 bg-slate-700/60">
+              <div class="donut-center">
+                <div>
+                  <p id="donutBig" class="text-xl font-bold text-slate-200">–</p>
+                  <p class="text-[10px] uppercase tracking-wider text-slate-500">matches</p>
+                </div>
+              </div>
+            </div>
+            <div id="donutLegend" class="min-w-0 flex-1 space-y-1.5 text-xs">
+              <p class="text-slate-500">Run a search to see the per-document breakdown.</p>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- ───────────────────── Search box + autocomplete ───────────────────── -->
+      <section class="relative z-10 mb-4">
+        <div class="flex gap-2">
+          <div class="relative flex-1">
+            <input id="searchBox" type="text" autocomplete="off" spellcheck="false"
+                   placeholder='Try "algorithm"  ·  "graph sorting"  ·  "graph or tree"'
+                   class="w-full rounded-xl border border-slate-700 bg-slate-800/70 px-5 py-3.5
+                          text-base text-slate-100 placeholder-slate-500 shadow-sm outline-none
+                          transition focus:border-sky-500 focus:ring-4 focus:ring-sky-500/15" />
+            <div id="suggestBox"
+                 class="absolute left-4 right-4 top-full z-20 mt-2 hidden overflow-hidden
+                        rounded-xl border border-slate-700 bg-slate-900 shadow-2xl"></div>
+          </div>
+          <button id="searchBtn"
+                  class="rounded-xl bg-sky-600 px-7 py-3.5 text-sm font-semibold text-white shadow-sm
+                         transition hover:bg-sky-500 active:scale-[.98]">
+            Search
+          </button>
+        </div>
+      </section>
+
+      <!-- Latency chips -->
+      <section id="metrics" class="mb-5 hidden flex-wrap items-center gap-2 text-xs">
+        <span id="metricSearch" class="rounded-full bg-emerald-500/10 px-3 py-1 font-mono text-emerald-400 ring-1 ring-emerald-500/30"></span>
+        <span id="metricMode"   class="rounded-full bg-sky-500/10 px-3 py-1 font-mono text-sky-400 ring-1 ring-sky-500/30"></span>
+        <span id="metricFile"   class="rounded-full bg-slate-800 px-3 py-1 font-mono text-slate-300 ring-1 ring-slate-700"></span>
+        <span id="metricCount"  class="rounded-full bg-slate-800 px-3 py-1 font-mono text-slate-300 ring-1 ring-slate-700"></span>
+      </section>
+
+      <!-- Indexing panel (compact, styled to blend with the dashboard) -->
+      <details class="mb-5 rounded-xl border border-slate-800 bg-slate-800/20 px-4 py-3">
+        <summary class="cursor-pointer text-sm font-medium text-slate-400 transition hover:text-slate-200">⚙ Index a different folder</summary>
+        <div class="mt-3 flex flex-col gap-2 sm:flex-row">
           <input id="folderInput" type="text"
                  placeholder="Folder of .txt files (empty = ./documents)"
                  class="flex-1 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200
@@ -102,69 +207,19 @@
           </button>
         </div>
         <div id="indexStatus" class="mt-3 hidden rounded-lg px-3 py-2 text-sm"></div>
-      </section>
+      </details>
 
-      <!-- ──────────────────────── Corpus stats (live) ──────────────────────── -->
-      <section class="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <div class="rounded-lg border border-slate-800 bg-slate-800/40 p-3 text-center">
-          <div id="statFiles" class="text-2xl font-bold text-sky-400">–</div>
-          <div class="text-xs uppercase tracking-wide text-slate-500">Files</div>
-        </div>
-        <div class="rounded-lg border border-slate-800 bg-slate-800/40 p-3 text-center">
-          <div id="statWords" class="text-2xl font-bold text-emerald-400">–</div>
-          <div class="text-xs uppercase tracking-wide text-slate-500">Unique words</div>
-        </div>
-        <div class="rounded-lg border border-slate-800 bg-slate-800/40 p-3 text-center">
-          <div id="statTokens" class="text-2xl font-bold text-amber-400">–</div>
-          <div class="text-xs uppercase tracking-wide text-slate-500">Tokens</div>
-        </div>
-        <div class="rounded-lg border border-slate-800 bg-slate-800/40 p-3 text-center">
-          <div id="statBuildMs" class="text-2xl font-bold text-rose-400">–</div>
-          <div class="text-xs uppercase tracking-wide text-slate-500">Index ms</div>
-        </div>
-      </section>
-
-      <!-- ───────────────────── Search box + autocomplete dropdown ──────────────────── -->
-      <section class="relative z-10 mb-4">
-        <div class="flex gap-2">
-          <div class="relative flex-1">
-            <input id="searchBox" type="text" autocomplete="off" spellcheck="false"
-                   placeholder='Try "algorithm"  ·  "graph sorting"  ·  "graph or tree"'
-                   class="w-full rounded-full border border-slate-700 bg-slate-800 px-6 py-3.5
-                          text-base text-slate-100 placeholder-slate-500 shadow-sm outline-none
-                          transition focus:border-sky-500 focus:ring-4 focus:ring-sky-500/15" />
-            <!-- Trie-powered suggestions, shown while typing -->
-            <div id="suggestBox"
-                 class="absolute left-4 right-4 top-full z-20 mt-2 hidden overflow-hidden
-                        rounded-xl border border-slate-700 bg-slate-900 shadow-2xl"></div>
-          </div>
-          <button id="searchBtn"
-                  class="rounded-full bg-sky-600 px-7 py-3.5 text-sm font-semibold text-white shadow-sm
-                         transition hover:bg-sky-500 active:scale-[.98]">
-            Search
-          </button>
-        </div>
-      </section>
-
-      <!-- ─────────────────── Benchmark latency chips (live) ─────────────────── -->
-      <section id="metrics" class="mb-5 hidden flex-wrap items-center gap-2 text-xs">
-        <span id="metricSearch" class="rounded-full bg-emerald-500/10 px-3 py-1 font-mono text-emerald-400 ring-1 ring-emerald-500/30"></span>
-        <span id="metricMode"   class="rounded-full bg-sky-500/10 px-3 py-1 font-mono text-sky-400 ring-1 ring-sky-500/30"></span>
-        <span id="metricFile"   class="rounded-full bg-slate-800 px-3 py-1 font-mono text-slate-300 ring-1 ring-slate-700"></span>
-        <span id="metricCount"  class="rounded-full bg-slate-800 px-3 py-1 font-mono text-slate-300 ring-1 ring-slate-700"></span>
-      </section>
-
-      <!-- ───────────── Phase 2: dictionary definition card ───────────── -->
+      <!-- Definition card -->
       <section id="definitionCard" class="mb-5 hidden"></section>
 
-      <!-- ───────────────────── Selected-file result card ───────────────────── -->
+      <!-- Single result card -->
       <section id="resultCard" class="mb-4 hidden"></section>
 
-      <!-- ───────────── "also matched in" chips (other files) ───────────── -->
+      <!-- "also matched in" chips -->
       <section id="otherMatches" class="mb-2 hidden"></section>
 
-      <!-- Friendly empty / helper states -->
-      <section id="placeholder" class="py-14 text-center text-slate-500">
+      <!-- Empty state -->
+      <section id="placeholder" class="py-12 text-center text-slate-500">
         <p class="text-5xl">🔎</p>
         <p class="mt-4 text-sm">Results with highlighted snippets will appear here.</p>
       </section>
@@ -178,10 +233,9 @@
    ───────────────────────────────────────────────────────────────────────────
    • auto-indexes ./documents on first load if the server has no index yet
    • debounced Trie autocomplete while typing (↑ ↓ Enter Esc supported)
-   • file-switcher dropdown: scope the search to one document or search all
-   • ONE result card per search: the selected file's match; other files that
-     matched appear as compact chips underneath ("also matched in …")
-   • renders server-highlighted snippets (<mark> tags arrive ready-made)
+   • file-switcher dropdown styled after the reference assessment selector
+   • ONE result card per search; other matches shown as "also matched in" chips
+   • donut chart shows how the current query's matches distribute per document
    • displays the exact Stopwatch latencies returned by every endpoint
    ═══════════════════════════════════════════════════════════════════════════ */
 
@@ -196,10 +250,12 @@ let suggestSeq    = 0;    // guards against out-of-order autocomplete responses
 let indexedFiles  = [];   // names from /api/stats
 let selectedFile  = null; // null = search all files
 let searchMode    = "and";
+let lastResults   = [];   // kept for the donut chart
+
+const CHIP_COLORS = ["#38bdf8", "#34d399", "#fbbf24", "#fb7185", "#a78bfa", "#f472b6", "#4ade80", "#f59e0b"];
 
 /* ─────────────────────────────── helpers ─────────────────────────────── */
 
-// Escape untrusted strings (doc names, paths) before innerHTML injection.
 const esc = (s) => String(s).replace(/[&<>"']/g,
   (c) => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
 
@@ -220,27 +276,38 @@ function showStatus(kind, text) {
 async function loadStats() {
   try {
     const stats = await (await fetch("/api/stats")).json();
-    $("statFiles").textContent   = stats.isIndexed ? stats.totalFiles   : "–";
-    $("statWords").textContent   = stats.isIndexed ? stats.uniqueWords  : "–";
-    $("statTokens").textContent  = stats.isIndexed ? stats.totalTokens  : "–";
-    $("statBuildMs").textContent = stats.isIndexed ? ms(stats.indexTimeMs) : "–";
+
+    // Big score card.
+    $("bigWords").textContent = stats.isIndexed ? stats.uniqueWords : "–";
+    $("scoreCaption").textContent = stats.isIndexed
+      ? `${stats.totalFiles} files · ${stats.totalTokens} tokens · built in ${ms(stats.indexTimeMs)}`
+      : "index the documents folder to begin";
+    $("statusWord").textContent = stats.isIndexed ? "Indexed" : "Awaiting index";
+    $("statusWord").className = "mt-1 text-lg font-semibold " +
+      (stats.isIndexed ? "text-emerald-400" : "text-slate-500");
+
+    if (stats.seededTerms > 0) {
+      const delta = $("seedDelta");
+      delta.textContent = `▲ ${stats.seededTerms} seeded`;
+      delta.classList.remove("hidden");
+    }
+
+    // Meters.
+    const msPct = stats.isIndexed ? Math.min(100, (stats.indexTimeMs / 20) * 100) : 0;
+    $("meterMs").style.width = msPct + "%";
+    $("meterMsLabel").textContent = stats.isIndexed ? ms(stats.indexTimeMs) : "–";
+    const dictPct = stats.isIndexed ? Math.min(100, (stats.seededTerms / Math.max(1, stats.uniqueWords)) * 100) : 0;
+    $("meterDict").style.width = dictPct + "%";
+    $("meterDictLabel").textContent = `${stats.seededTerms} terms`;
 
     indexedFiles = stats.indexedFiles || [];
     renderFileList();
 
-    // Seed badge in the title bar.
-    const badge = $("seedBadge");
+    // Selector-row badge (kept from previous UI, shown in the dropdown footer title).
     if (stats.seededTerms > 0) {
-      badge.textContent = `📚 ${stats.seededTerms} dictionary terms · ${stats.seedProvider}`;
-      badge.className = "ml-auto rounded-full bg-sky-500/10 px-3 py-1 text-xs text-sky-400 ring-1 ring-sky-500/30";
-    } else if (stats.seedError) {
-      badge.textContent = "⚠ dictionary not loaded";
-      badge.className = "ml-auto rounded-full bg-rose-500/10 px-3 py-1 text-xs text-rose-400 ring-1 ring-rose-500/30";
-    } else {
-      badge.textContent = "no dictionary seeds";
+      $("fileCountLine").dataset.seed = `📚 ${stats.seededTerms} dictionary terms · ${stats.seedProvider}`;
     }
 
-    // First-run convenience: index the default folder automatically.
     if (!stats.isIndexed) await indexFolder("");
   } catch (e) {
     showStatus("err", "Cannot reach the API — is the server running?");
@@ -254,30 +321,26 @@ function renderFileList(filter = "") {
   const f = filter.trim().toLowerCase();
   const files = indexedFiles.filter((n) => n.toLowerCase().includes(f));
 
-  // "All files" pseudo-entry first.
-  const allRow = `
-    <div data-file="" class="file-row flex cursor-pointer items-center justify-between px-4 py-2.5 text-sm hover:bg-slate-800">
-      <span class="flex items-center gap-2 font-medium ${selectedFile === null ? "text-sky-400" : "text-slate-300"}">🗂 All files</span>
-      ${selectedFile === null ? '<span class="text-sky-400">✓</span>' : ""}
-    </div>`;
-
-  list.innerHTML = allRow + (files.length ? files.map((n) => `
-    <div data-file="${esc(n)}" class="file-row flex cursor-pointer items-center justify-between px-4 py-2.5 text-sm hover:bg-slate-800 ${selectedFile === n ? "bg-sky-500/10" : ""}">
-      <span class="flex items-center gap-2 ${selectedFile === n ? "font-semibold text-sky-400" : "text-slate-300"}">📄 ${esc(n)}</span>
-      ${selectedFile === n ? '<span class="text-sky-400">✓</span>' : ""}
+  list.innerHTML = (files.length ? files.map((n) => `
+    <div data-file="${esc(n)}" class="file-row flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-sm hover:bg-slate-800/70 ${selectedFile === n ? "bg-slate-800" : ""}">
+      <span class="text-slate-500">📄</span>
+      <span class="${selectedFile === n ? "font-semibold text-slate-100" : "text-slate-300"}">${esc(n)}</span>
+      ${selectedFile === n ? '<span class="ml-auto text-sky-400">✓</span>' : ""}
     </div>`).join("")
-    : `<p class="px-4 py-3 text-sm text-slate-500">No files match "${esc(filter)}".</p>`);
+    : `<p class="px-3 py-3 text-sm text-slate-500">No files match "${esc(filter)}".</p>`);
 
+  const seeded = $("fileCountLine").dataset.seed || "";
   $("fileCountLine").textContent =
-    `${indexedFiles.length} document${indexedFiles.length === 1 ? "" : "s"} indexed`;
+    `${indexedFiles.length} document${indexedFiles.length === 1 ? "" : "s"} indexed` + (seeded ? "" : "");
 
   list.querySelectorAll(".file-row").forEach((row) => {
     row.addEventListener("click", () => {
       selectedFile = row.dataset.file || null;
       $("fileSelectLabel").textContent = selectedFile || "All files";
+      $("scopeTitle").textContent = selectedFile || "All files";
       toggleFilePanel(false);
-      renderFileList($(fileFilter).value);
-      if (searchBox.value.trim()) runSearch();   // re-run under the new scope
+      renderFileList($("fileFilter").value);
+      if (searchBox.value.trim()) runSearch();
     });
   });
 }
@@ -294,6 +357,15 @@ $("fileSelectBtn").addEventListener("click", () => toggleFilePanel());
 $("fileFilter").addEventListener("input", (e) => renderFileList(e.target.value));
 document.addEventListener("click", (e) => {
   if (!$("fileSelectWrap").contains(e.target)) toggleFilePanel(false);
+});
+
+// Back chevron: reset scope to all files (like going up a level in the reference).
+$("backBtn").addEventListener("click", () => {
+  selectedFile = null;
+  $("fileSelectLabel").textContent = "All files";
+  $("scopeTitle").textContent = "All files";
+  renderFileList($("fileFilter").value);
+  if (searchBox.value.trim()) runSearch();
 });
 
 /* ─────────────────────────────── indexing ─────────────────────────────── */
@@ -339,9 +411,8 @@ function renderSuggestions(data) {
     </div>`).join("");
   suggestBox.classList.remove("hidden");
 
-  // Click (and mouse-over) selection.
   suggestBox.querySelectorAll(".suggestion").forEach((el) => {
-    el.addEventListener("mousedown", (e) => {          // mousedown: before input blur
+    el.addEventListener("mousedown", (e) => {
       e.preventDefault();
       chooseSuggestion(Number(el.dataset.i));
     });
@@ -357,7 +428,6 @@ function chooseSuggestion(i) {
 
 function hideSuggestions() { suggestBox.classList.add("hidden"); activeIndex = -1; }
 
-// Debounced: 120 ms after the last keystroke, query the Trie.
 let typeTimer = null;
 searchBox.addEventListener("input", () => {
   clearTimeout(typeTimer);
@@ -365,7 +435,7 @@ searchBox.addEventListener("input", () => {
   if (!prefix) { hideSuggestions(); return; }
 
   typeTimer = setTimeout(async () => {
-    const seq = ++suggestSeq;                          // drop stale responses
+    const seq = ++suggestSeq;
     try {
       const data = await (await fetch("/api/autocomplete?prefix=" + encodeURIComponent(prefix))).json();
       if (seq === suggestSeq) renderSuggestions(data);
@@ -373,7 +443,6 @@ searchBox.addEventListener("input", () => {
   }, 120);
 });
 
-// Keyboard navigation inside the dropdown.
 searchBox.addEventListener("keydown", (e) => {
   const open = !suggestBox.classList.contains("hidden");
   if (e.key === "ArrowDown" && open) {
@@ -402,8 +471,8 @@ document.addEventListener("click", (e) => {
 
 function setMode(mode) {
   searchMode = mode;
-  const on  = "rounded-md bg-slate-700 px-5 py-1.5 font-semibold text-white shadow-sm";
-  const off = "rounded-md px-5 py-1.5 font-medium text-slate-400 transition hover:text-slate-200";
+  const on  = "rounded-lg bg-slate-600/80 px-6 py-2 font-semibold text-white shadow-sm ring-1 ring-slate-500/40";
+  const off = "rounded-lg px-6 py-2 font-medium text-slate-400 transition hover:text-slate-200";
   $("tabAnd").className = mode === "and" ? on : off;
   $("tabOr").className  = mode === "or"  ? on : off;
 }
@@ -421,8 +490,6 @@ async function runSearch() {
   try {
     const url = "/api/search?q=" + encodeURIComponent(q) + "&mode=" + searchMode;
 
-    // Search the corpus AND look the query up in the seeded dictionary in
-    // parallel; the definition card only appears when the word is known.
     const [data, def] = await Promise.all([
       fetch(url).then((r) => r.json()),
       fetch("/api/definition?word=" + encodeURIComponent(q))
@@ -440,14 +507,14 @@ async function runSearch() {
 
 $("searchBtn").addEventListener("click", runSearch);
 
-/* ────────────── Phase 2: dictionary definition card ────────────── */
+/* ────────────── dictionary definition card ────────────── */
 
 function renderDefinition(def) {
   const box = $("definitionCard");
   if (!def || !def.definition) { box.classList.add("hidden"); return; }
 
   box.innerHTML = `
-    <div class="fade-in rounded-lg border border-amber-500/30 bg-amber-500/5 p-5">
+    <div class="fade-in rounded-xl border border-amber-500/30 bg-amber-500/5 p-5">
       <div class="flex flex-wrap items-baseline justify-between gap-2">
         <h2 class="text-base font-semibold text-amber-300">📖 ${esc(def.word)}</h2>
         <span class="rounded-full bg-amber-500/10 px-3 py-0.5 text-xs font-medium text-amber-400">
@@ -457,6 +524,41 @@ function renderDefinition(def) {
       <p class="mt-2 text-sm leading-relaxed text-slate-300">${esc(def.definition)}</p>
     </div>`;
   box.classList.remove("hidden");
+}
+
+/* ─────────────── donut: per-document share of the matches ─────────────── */
+
+function renderDonut(results) {
+  const donut = $("donut"), legend = $("donutLegend"), big = $("donutBig");
+
+  if (!results.length) {
+    donut.style.background = "";
+    donut.classList.add("bg-slate-700/60");
+    big.textContent = "0";
+    legend.innerHTML = '<p class="text-slate-500">No matches for this query.</p>';
+    return;
+  }
+  donut.classList.remove("bg-slate-700/60");
+
+  const total = results.reduce((sum, r) => sum + r.occurrenceCount, 0);
+  big.textContent = total;
+
+  // Build the conic-gradient segments.
+  let acc = 0;
+  const stops = results.map((r, i) => {
+    const from = (acc / total) * 360;
+    acc += r.occurrenceCount;
+    const to = (acc / total) * 360;
+    return `${CHIP_COLORS[i % CHIP_COLORS.length]} ${from}deg ${to}deg`;
+  });
+  donut.style.background = `conic-gradient(${stops.join(", ")})`;
+
+  legend.innerHTML = results.map((r, i) => `
+    <div class="flex items-center gap-2">
+      <span class="h-2.5 w-2.5 shrink-0 rounded-full" style="background:${CHIP_COLORS[i % CHIP_COLORS.length]}"></span>
+      <span class="truncate text-slate-300">${esc(r.documentName)}</span>
+      <span class="ml-auto font-mono text-slate-500">${r.occurrenceCount}×</span>
+    </div>`).join("");
 }
 
 /* ─────────── one result card: selected file first, others as chips ─────────── */
@@ -470,10 +572,12 @@ function renderResults(data) {
   $("metricCount").textContent  = data.totalMatches + " file(s) matched";
 
   placeholder.classList.add("hidden");
+  lastResults = data.results;
+  renderDonut(data.results);
 
   if (!data.results.length) {
     resultCard.innerHTML = `
-      <div class="rounded-lg border border-slate-800 bg-slate-800/40 p-8 text-center">
+      <div class="rounded-xl border border-slate-800 bg-slate-800/40 p-8 text-center">
         <p class="text-4xl">🤷</p>
         <p class="mt-3 text-slate-300">No documents matched
            <b class="text-slate-100">"${esc(data.query)}"</b>.</p>
@@ -484,15 +588,13 @@ function renderResults(data) {
     return;
   }
 
-  // The SHOW card: the selected file's result, or the top-ranked one when
-  // searching all files. Everything else becomes a compact chip.
   const shown = selectedFile
     ? data.results.find((r) => r.documentName === selectedFile)
     : data.results[0];
   const others = data.results.filter((r) => r !== shown);
 
   resultCard.innerHTML = `
-    <article class="fade-in rounded-lg border border-slate-800 bg-slate-800/40 p-5">
+    <article class="fade-in rounded-xl border border-slate-800 bg-slate-800/40 p-5">
       <div class="flex flex-wrap items-baseline justify-between gap-2">
         <h2 class="text-base font-semibold text-slate-100">📄 ${esc(shown.documentName)}</h2>
         <span class="rounded-full bg-sky-500/10 px-3 py-1 text-xs font-mono text-sky-400 ring-1 ring-sky-500/30">
@@ -503,7 +605,7 @@ function renderResults(data) {
 
       <div class="mt-3 flex flex-wrap gap-1.5">
         ${shown.lineNumbers.map((n) =>
-          `<span class="rounded bg-slate-800 px-2 py-0.5 text-xs text-slate-400">line ${n}</span>`
+          `<span class="rounded bg-slate-900/80 px-2 py-0.5 text-xs text-slate-400">line ${n}</span>`
         ).join("")}
       </div>
 
@@ -517,7 +619,7 @@ function renderResults(data) {
 
   if (others.length) {
     otherMatches.innerHTML = `
-      <div class="rounded-lg border border-slate-800 bg-slate-800/40 px-4 py-3">
+      <div class="rounded-xl border border-slate-800 bg-slate-800/40 px-4 py-3">
         <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Also matched in</p>
         <div class="mt-2 flex flex-wrap gap-2">
           ${others.map((r) => `
@@ -530,11 +632,11 @@ function renderResults(data) {
       </div>`;
     otherMatches.classList.remove("hidden");
 
-    // Clicking a chip switches the card to that document.
     otherMatches.querySelectorAll(".other-chip").forEach((chip) => {
       chip.addEventListener("click", () => {
         selectedFile = chip.dataset.doc;
         $("fileSelectLabel").textContent = selectedFile;
+        $("scopeTitle").textContent = selectedFile;
         renderFileList($("fileFilter").value);
         runSearch();
       });
