@@ -213,7 +213,10 @@
       <section id="definitionCard" class="mb-5 hidden"></section>
 
       <!-- Single result card -->
-      <section id="resultCard" class="mb-4 hidden"></section>
+      <section id="resultCard" class="mb-2 hidden"></section>
+
+      <!-- Result pager: page through matching documents one at a time -->
+      <section id="resultPager" class="mb-4 hidden"></section>
 
       <!-- "also matched in" chips -->
       <section id="otherMatches" class="mb-2 hidden"></section>
@@ -251,6 +254,7 @@ let indexedFiles  = [];   // names from /api/stats
 let selectedFile  = null; // null = search all files
 let searchMode    = "and";
 let lastResults   = [];   // kept for the donut chart
+let resultIndex   = 0;    // pager: which matching document is on display
 
 const CHIP_COLORS = ["#38bdf8", "#34d399", "#fbbf24", "#fb7185", "#a78bfa", "#f472b6", "#4ade80", "#f59e0b"];
 
@@ -336,6 +340,7 @@ function renderFileList(filter = "") {
   list.querySelectorAll(".file-row").forEach((row) => {
     row.addEventListener("click", () => {
       selectedFile = row.dataset.file || null;
+      resultIndex = 0;                   // fresh scope starts at page 1
       $("fileSelectLabel").textContent = selectedFile || "All files";
       $("scopeTitle").textContent = selectedFile || "All files";
       toggleFilePanel(false);
@@ -362,6 +367,7 @@ document.addEventListener("click", (e) => {
 // Back chevron: reset scope to all files (like going up a level in the reference).
 $("backBtn").addEventListener("click", () => {
   selectedFile = null;
+  resultIndex = 0;                       // reset the pager to page 1
   $("fileSelectLabel").textContent = "All files";
   $("scopeTitle").textContent = "All files";
   renderFileList($("fileFilter").value);
@@ -471,6 +477,7 @@ document.addEventListener("click", (e) => {
 
 function setMode(mode) {
   searchMode = mode;
+  resultIndex = 0;                       // mode change starts at page 1
   const on  = "rounded-lg bg-slate-600/80 px-6 py-2 font-semibold text-white shadow-sm ring-1 ring-slate-500/40";
   const off = "rounded-lg px-6 py-2 font-medium text-slate-400 transition hover:text-slate-200";
   $("tabAnd").className = mode === "and" ? on : off;
@@ -496,9 +503,16 @@ async function runSearch() {
         .then((r) => r.json()).catch(() => null)
     ]);
     renderDefinition(def);
+
+    // Start a fresh query on page 1 — unless the user is scoped to a specific
+    // file (via the dropdown or a chip), which pins the pager to that document.
+    resultIndex = selectedFile
+      ? Math.max(0, data.results.findIndex((r) => r.documentName === selectedFile))
+      : 0;
     renderResults(data);
   } catch (e) {
     resultCard.classList.add("hidden");
+    $("resultPager").classList.add("hidden");
     otherMatches.classList.add("hidden");
     placeholder.classList.remove("hidden");
     showStatus("err", "Search failed: " + e.message);
@@ -561,7 +575,7 @@ function renderDonut(results) {
     </div>`).join("");
 }
 
-/* ─────────── one result card: selected file first, others as chips ─────────── */
+/* ─────────── one result card + pager: flip through matches like pages ─────────── */
 
 function renderResults(data) {
   metrics.classList.remove("hidden");
@@ -584,14 +598,15 @@ function renderResults(data) {
         <p class="mt-1 text-sm text-slate-500">Check spelling, or try the OR mode.</p>
       </div>`;
     resultCard.classList.remove("hidden");
+    $("resultPager").classList.add("hidden");
     otherMatches.classList.add("hidden");
     return;
   }
 
-  const shown = selectedFile
-    ? data.results.find((r) => r.documentName === selectedFile)
-    : data.results[0];
-  const others = data.results.filter((r) => r !== shown);
+  // Clamp the pager into range (results may shrink after a re-index).
+  resultIndex = Math.min(Math.max(0, resultIndex), data.results.length - 1);
+  const shown = data.results[resultIndex];
+  const others = data.results.filter((_, i) => i !== resultIndex);
 
   resultCard.innerHTML = `
     <article class="fade-in rounded-xl border border-slate-800 bg-slate-800/40 p-5">
@@ -617,6 +632,67 @@ function renderResults(data) {
     </article>`;
   resultCard.classList.remove("hidden");
 
+  renderPager(data.results);
+  renderOtherChips(others);
+}
+
+/* ── pager: ‹ page 2 of 3 › — flips the card without re-querying the server ── */
+
+function renderPager(results) {
+  const pager = $("resultPager");
+
+  if (results.length <= 1) { pager.classList.add("hidden"); return; }
+
+  const atStart = resultIndex === 0;
+  const atEnd   = resultIndex === results.length - 1;
+
+  pager.innerHTML = `
+    <div class="flex items-center justify-between rounded-xl border border-slate-800 bg-slate-800/40 px-4 py-2.5">
+      <button id="pagerPrev" ${atStart ? "disabled" : ""}
+              class="rounded-lg px-3 py-1.5 text-sm font-medium transition
+                     ${atStart ? "cursor-not-allowed text-slate-600" : "text-slate-300 hover:bg-slate-700/60 hover:text-white"}">
+        ‹ Prev
+      </button>
+      <span class="text-xs font-mono text-slate-400">
+        page ${resultIndex + 1} of ${results.length} — ${esc(results[resultIndex].documentName)}
+      </span>
+      <button id="pagerNext" ${atEnd ? "disabled" : ""}
+              class="rounded-lg px-3 py-1.5 text-sm font-medium transition
+                     ${atEnd ? "cursor-not-allowed text-slate-600" : "text-slate-300 hover:bg-slate-700/60 hover:text-white"}">
+        Next ›
+      </button>
+    </div>`;
+  pager.classList.remove("hidden");
+
+  const prev = $("pagerPrev"), next = $("pagerNext");
+  if (!atStart) prev.addEventListener("click", () => flipResult(-1));
+  if (!atEnd)   next.addEventListener("click", () => flipResult(1));
+}
+
+// Flip one page: re-render the stored results client-side (no server round-trip).
+function flipResult(delta) {
+  if (!lastResults.length) return;
+  resultIndex = Math.min(Math.max(0, resultIndex + delta), lastResults.length - 1);
+  const shown = lastResults[resultIndex];
+
+  // Keep the dropdown scope label, header title, and chips in sync with the page.
+  selectedFile = shown.documentName;
+  $("fileSelectLabel").textContent = selectedFile;
+  $("scopeTitle").textContent = selectedFile;
+  renderFileList($("fileFilter").value);
+
+  renderResults({
+    query: searchBox.value.trim(),
+    mode: searchMode,
+    totalMatches: lastResults.length,
+    searchTimeMs: null,
+    results: lastResults
+  });
+}
+
+/* ── "also matched in" chips: jump straight to any other matching document ── */
+
+function renderOtherChips(others) {
   if (others.length) {
     otherMatches.innerHTML = `
       <div class="rounded-xl border border-slate-800 bg-slate-800/40 px-4 py-3">
@@ -634,11 +710,10 @@ function renderResults(data) {
 
     otherMatches.querySelectorAll(".other-chip").forEach((chip) => {
       chip.addEventListener("click", () => {
-        selectedFile = chip.dataset.doc;
-        $("fileSelectLabel").textContent = selectedFile;
-        $("scopeTitle").textContent = selectedFile;
-        renderFileList($("fileFilter").value);
-        runSearch();
+        const idx = lastResults.findIndex((r) => r.documentName === chip.dataset.doc);
+        if (idx < 0) return;
+        resultIndex = idx;                 // jump to that "page" directly
+        flipResult(0);
       });
     });
   } else {
