@@ -385,6 +385,13 @@ public sealed class SearchEngine
                 LastIndexTimeMs,
                 LastIndexedUtc,
 
+                // Names of the indexed documents, for the UI's file-switcher.
+                _documentLines.Keys
+                    .Select(Path.GetFileName)
+                    .Where(n => !string.IsNullOrEmpty(n))
+                    .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
+                    .ToList(),
+
                 // Phase 2: seed state for the UI.
                 _definitions.Count,
                 SeedProvider,

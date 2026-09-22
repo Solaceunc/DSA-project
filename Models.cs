@@ -94,6 +94,9 @@ public record StatsResponse(
     double IndexTimeMs,
     DateTime? LastIndexedUtc,
 
+    // ── names of every indexed document (for the UI's file-switcher) ──
+    IReadOnlyList<string> IndexedFiles,
+
     // ── Phase 2: external seeding ──
     int SeededTerms,
     string SeedProvider,

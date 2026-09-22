@@ -7,112 +7,168 @@
   <!-- Tailwind CSS (CDN build — perfect for a self-contained local app) -->
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    /* Small custom layer: <mark> highlight + smooth dropdown animation */
+    /* Light enterprise look: soft blue gradient backdrop, white workspace card */
+    body {
+      background:
+        linear-gradient(160deg, #eaf3fb 0%, #d7e7f5 45%, #c3d9ee 100%);
+      min-height: 100vh;
+    }
     mark { background: #fde047; color: #422006; border-radius: 3px; padding: 0 2px; font-weight: 600; }
     .fade-in { animation: fadeIn .18s ease-out; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
-    ::-webkit-scrollbar { width: 8px; } ::-webkit-scrollbar-thumb { background: #334155; border-radius: 8px; }
+    ::-webkit-scrollbar { width: 8px; } ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 8px; }
+    /* Dropdown chevron rotation */
+    .chev { transition: transform .15s; }
+    .open .chev { transform: rotate(180deg); }
   </style>
 </head>
 
-<body class="min-h-screen bg-slate-950 text-slate-200 antialiased">
-<div class="mx-auto max-w-3xl px-4 pb-24">
+<body class="text-slate-800 antialiased">
+<div class="mx-auto max-w-4xl px-4 pb-16">
 
   <!-- ─────────────────────────── Header / brand ─────────────────────────── -->
-  <header class="pt-14 pb-8 text-center">
-    <h1 class="text-5xl font-bold tracking-tight">
-      <span class="text-indigo-400">Mini</span><span class="text-white">Search</span>
-      <span class="align-super text-xs font-normal text-slate-500">.txt engine</span>
+  <header class="flex items-end justify-between pt-10 pb-6">
+    <h1 class="text-3xl font-bold tracking-tight text-slate-800">
+      Mini Search Engine
     </h1>
-    <p class="mt-3 text-sm text-slate-400">
-      Inverted Index &nbsp;·&nbsp; Trie autocomplete &nbsp;·&nbsp; live latency benchmarks
+    <p class="text-xs text-slate-500">
+      .txt engine · inverted index · trie autocomplete
     </p>
-    <!-- Phase 2: external seed status (MariaDB or GitHub JSON) -->
-    <p id="seedLine" class="mt-2 text-xs text-slate-500"></p>
   </header>
 
-  <!-- ────────────────────── Indexing panel (folder + status) ───────────────────── -->
-  <section id="indexCard" class="mb-6 rounded-2xl border border-slate-800 bg-slate-900/70 p-4 shadow-xl">
-    <div class="flex flex-col gap-3 sm:flex-row">
-      <input id="folderInput" type="text"
-             placeholder="Folder of .txt files (empty = ./documents)"
-             class="flex-1 rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm
-                    text-slate-200 placeholder-slate-600 outline-none focus:border-indigo-500" />
-      <button id="indexBtn"
-              class="rounded-lg bg-indigo-600 px-5 py-2 text-sm font-semibold text-white
-                     transition hover:bg-indigo-500 active:scale-[.98]">
-        Index folder
-      </button>
-    </div>
-    <div id="indexStatus" class="mt-3 hidden rounded-lg px-3 py-2 text-sm"></div>
-  </section>
+  <!-- ──────────────────────── White workspace card ──────────────────────── -->
+  <main class="rounded-xl border border-slate-200/80 bg-white shadow-[0_18px_50px_-20px_rgba(30,64,120,.35)]">
 
-  <!-- ──────────────────────── Corpus stats (live) ──────────────────────── -->
-  <section class="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-    <div class="rounded-xl border border-slate-800 bg-slate-900/70 p-3 text-center">
-      <div id="statFiles" class="text-2xl font-bold text-indigo-300">–</div>
-      <div class="text-xs uppercase tracking-wide text-slate-500">Files</div>
+    <!-- Card title bar -->
+    <div class="flex items-center gap-3 border-b border-slate-100 px-6 py-4">
+      <span class="text-slate-400">🔍</span>
+      <h2 class="text-lg font-semibold text-slate-800">Document Search</h2>
+      <span id="seedBadge" class="ml-auto rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-500"></span>
     </div>
-    <div class="rounded-xl border border-slate-800 bg-slate-900/70 p-3 text-center">
-      <div id="statWords" class="text-2xl font-bold text-emerald-300">–</div>
-      <div class="text-xs uppercase tracking-wide text-slate-500">Unique words</div>
-    </div>
-    <div class="rounded-xl border border-slate-800 bg-slate-900/70 p-3 text-center">
-      <div id="statTokens" class="text-2xl font-bold text-amber-300">–</div>
-      <div class="text-xs uppercase tracking-wide text-slate-500">Tokens</div>
-    </div>
-    <div class="rounded-xl border border-slate-800 bg-slate-900/70 p-3 text-center">
-      <div id="statBuildMs" class="text-2xl font-bold text-rose-300">–</div>
-      <div class="text-xs uppercase tracking-wide text-slate-500">Index ms</div>
-    </div>
-  </section>
 
-  <!-- ───────────────────── Search box + autocomplete dropdown ──────────────────── -->
-  <section class="relative z-10 mb-4">
-    <div class="flex gap-2">
-      <div class="relative flex-1">
-        <input id="searchBox" type="text" autocomplete="off" spellcheck="false"
-               placeholder='Try "algorithm"  ·  "graph sorting" (AND)  ·  "graph or tree" (OR)'
-               class="w-full rounded-full border border-slate-700 bg-slate-900 px-6 py-4
-                      text-lg text-white placeholder-slate-600 shadow-2xl outline-none
-                      transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20" />
-        <!-- Trie-powered suggestions, shown while typing -->
-        <div id="suggestBox"
-             class="absolute left-4 right-4 top-full z-20 mt-2 hidden overflow-hidden
-                    rounded-xl border border-slate-700 bg-slate-900 shadow-2xl"></div>
+    <div class="px-6 py-5">
+
+      <!-- ────────────────── Toolbar: tabs + file-switcher dropdown ────────────────── -->
+      <div class="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center">
+        <!-- Tabs (visual mode selector) -->
+        <div class="flex rounded-lg border border-slate-200 bg-slate-50 p-1 text-sm">
+          <button id="tabAnd" class="rounded-md bg-white px-5 py-1.5 font-semibold text-slate-800 shadow-sm ring-1 ring-slate-200">AND</button>
+          <button id="tabOr"  class="rounded-md px-5 py-1.5 font-medium text-slate-500 transition hover:text-slate-700">OR</button>
+        </div>
+
+        <!-- File-switcher dropdown (like the reference's assessment selector) -->
+        <div id="fileSelectWrap" class="relative sm:ml-auto sm:w-80">
+          <button id="fileSelectBtn" type="button"
+                  class="flex w-full items-center justify-between rounded-lg border-2 border-sky-500 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm">
+            <span class="flex min-w-0 items-center gap-2">
+              <span class="text-slate-400">📄</span>
+              <span id="fileSelectLabel" class="truncate">All files</span>
+            </span>
+            <svg class="chev h-4 w-4 shrink-0 text-sky-600" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.23 8.29a.75.75 0 010-1.08z" clip-rule="evenodd"/></svg>
+          </button>
+
+          <!-- Dropdown panel: search box + file list + footer -->
+          <div id="fileSelectPanel" class="absolute left-0 right-0 top-full z-30 mt-2 hidden overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl">
+            <div class="border-b border-slate-100 p-3">
+              <div class="flex items-center gap-2 rounded-lg border-2 border-sky-500 px-3 py-2">
+                <span class="text-slate-400">🔍</span>
+                <input id="fileFilter" type="text" placeholder="Search files…"
+                       class="w-full text-sm outline-none placeholder:text-slate-400" />
+              </div>
+            </div>
+            <div class="px-3 pt-3 pb-1">
+              <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Indexed documents</p>
+            </div>
+            <div id="fileList" class="max-h-64 overflow-y-auto pb-2"></div>
+            <div class="border-t border-slate-100 bg-slate-50 px-4 py-2.5 text-xs text-slate-500">
+              <span id="fileCountLine">0 documents indexed</span>
+            </div>
+          </div>
+        </div>
       </div>
-      <select id="modeSelect"
-              class="rounded-full border border-slate-700 bg-slate-900 px-4 text-sm text-slate-300
-                     outline-none focus:border-indigo-500">
-        <option value="and" selected>AND</option>
-        <option value="or">OR</option>
-      </select>
-      <button id="searchBtn"
-              class="rounded-full bg-indigo-600 px-6 py-4 text-sm font-semibold text-white
-                     transition hover:bg-indigo-500 active:scale-[.98]">
-        Search
-      </button>
+
+      <!-- ────────────────────── Indexing panel (folder + status) ────────────────────── -->
+      <section id="indexCard" class="mb-5 rounded-lg border border-slate-200 bg-slate-50/60 p-4">
+        <div class="flex flex-col gap-3 sm:flex-row">
+          <input id="folderInput" type="text"
+                 placeholder="Folder of .txt files (empty = ./documents)"
+                 class="flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700
+                        placeholder-slate-400 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100" />
+          <button id="indexBtn"
+                  class="rounded-lg bg-sky-600 px-5 py-2 text-sm font-semibold text-white
+                         transition hover:bg-sky-500 active:scale-[.98]">
+            Index folder
+          </button>
+        </div>
+        <div id="indexStatus" class="mt-3 hidden rounded-lg px-3 py-2 text-sm"></div>
+      </section>
+
+      <!-- ──────────────────────── Corpus stats (live) ──────────────────────── -->
+      <section class="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div class="rounded-lg border border-slate-200 bg-white p-3 text-center">
+          <div id="statFiles" class="text-2xl font-bold text-sky-600">–</div>
+          <div class="text-xs uppercase tracking-wide text-slate-400">Files</div>
+        </div>
+        <div class="rounded-lg border border-slate-200 bg-white p-3 text-center">
+          <div id="statWords" class="text-2xl font-bold text-emerald-600">–</div>
+          <div class="text-xs uppercase tracking-wide text-slate-400">Unique words</div>
+        </div>
+        <div class="rounded-lg border border-slate-200 bg-white p-3 text-center">
+          <div id="statTokens" class="text-2xl font-bold text-amber-600">–</div>
+          <div class="text-xs uppercase tracking-wide text-slate-400">Tokens</div>
+        </div>
+        <div class="rounded-lg border border-slate-200 bg-white p-3 text-center">
+          <div id="statBuildMs" class="text-2xl font-bold text-rose-500">–</div>
+          <div class="text-xs uppercase tracking-wide text-slate-400">Index ms</div>
+        </div>
+      </section>
+
+      <!-- ───────────────────── Search box + autocomplete dropdown ──────────────────── -->
+      <section class="relative z-10 mb-4">
+        <div class="flex gap-2">
+          <div class="relative flex-1">
+            <input id="searchBox" type="text" autocomplete="off" spellcheck="false"
+                   placeholder='Try "algorithm"  ·  "graph sorting"  ·  "graph or tree"'
+                   class="w-full rounded-full border border-slate-300 bg-white px-6 py-3.5
+                          text-base text-slate-800 placeholder-slate-400 shadow-sm outline-none
+                          transition focus:border-sky-500 focus:ring-4 focus:ring-sky-100" />
+            <!-- Trie-powered suggestions, shown while typing -->
+            <div id="suggestBox"
+                 class="absolute left-4 right-4 top-full z-20 mt-2 hidden overflow-hidden
+                        rounded-xl border border-slate-200 bg-white shadow-2xl"></div>
+          </div>
+          <button id="searchBtn"
+                  class="rounded-full bg-sky-600 px-7 py-3.5 text-sm font-semibold text-white shadow-sm
+                         transition hover:bg-sky-500 active:scale-[.98]">
+            Search
+          </button>
+        </div>
+      </section>
+
+      <!-- ─────────────────── Benchmark latency chips (live) ─────────────────── -->
+      <section id="metrics" class="mb-5 hidden flex-wrap items-center gap-2 text-xs">
+        <span id="metricSearch" class="rounded-full bg-emerald-50 px-3 py-1 font-mono text-emerald-700 ring-1 ring-emerald-200"></span>
+        <span id="metricMode"   class="rounded-full bg-sky-50 px-3 py-1 font-mono text-sky-700 ring-1 ring-sky-200"></span>
+        <span id="metricFile"   class="rounded-full bg-slate-100 px-3 py-1 font-mono text-slate-600 ring-1 ring-slate-200"></span>
+        <span id="metricCount"  class="rounded-full bg-slate-100 px-3 py-1 font-mono text-slate-600 ring-1 ring-slate-200"></span>
+      </section>
+
+      <!-- ───────────── Phase 2: dictionary definition card ───────────── -->
+      <section id="definitionCard" class="mb-5 hidden"></section>
+
+      <!-- ───────────────────── Selected-file result card ───────────────────── -->
+      <section id="resultCard" class="mb-4 hidden"></section>
+
+      <!-- ───────────── "also matched in" chips (other files) ───────────── -->
+      <section id="otherMatches" class="mb-2 hidden"></section>
+
+      <!-- Friendly empty / helper states -->
+      <section id="placeholder" class="py-14 text-center text-slate-400">
+        <p class="text-5xl">🔎</p>
+        <p class="mt-4 text-sm">Results with highlighted snippets will appear here.</p>
+      </section>
     </div>
-  </section>
-
-  <!-- ─────────────────── Benchmark latency chips (live) ─────────────────── -->
-  <section id="metrics" class="mb-6 hidden flex-wrap items-center gap-2 text-xs">
-    <span id="metricSearch" class="rounded-full bg-slate-800 px-3 py-1 font-mono text-emerald-300"></span>
-    <span id="metricMode"   class="rounded-full bg-slate-800 px-3 py-1 font-mono text-indigo-300"></span>
-    <span id="metricCount"  class="rounded-full bg-slate-800 px-3 py-1 font-mono text-slate-300"></span>
-  </section>
-
-  <!-- ───────────── Phase 2: dictionary definition card ───────────── -->
-  <section id="definitionCard" class="mb-6 hidden"></section>
-
-  <!-- ─────────────────────────── Results list ─────────────────────────── -->
-  <section id="results" class="space-y-4"></section>
-
-  <!-- Friendly empty / helper states -->
-  <section id="placeholder" class="mt-16 text-center text-slate-600">
-    <p class="text-6xl">🔎</p>
-    <p class="mt-4 text-sm">Results with highlighted snippets will appear here.</p>
-  </section>
+  </main>
 </div>
 
 <script>
@@ -121,18 +177,24 @@
    ───────────────────────────────────────────────────────────────────────────
    • auto-indexes ./documents on first load if the server has no index yet
    • debounced Trie autocomplete while typing (↑ ↓ Enter Esc supported)
+   • file-switcher dropdown: scope the search to one document or search all
+   • ONE result card per search: the selected file's match; other files that
+     matched appear as compact chips underneath ("also matched in …")
    • renders server-highlighted snippets (<mark> tags arrive ready-made)
    • displays the exact Stopwatch latencies returned by every endpoint
    ═══════════════════════════════════════════════════════════════════════════ */
 
 const $ = (id) => document.getElementById(id);
 const searchBox   = $("searchBox"),   suggestBox = $("suggestBox");
-const resultsBox  = $("results"),     placeholder = $("placeholder");
-const metrics     = $("metrics");
+const resultCard  = $("resultCard"),  otherMatches = $("otherMatches");
+const placeholder = $("placeholder"), metrics = $("metrics");
 
-let suggestItems = [];   // current dropdown entries
-let activeIndex  = -1;   // keyboard-selected suggestion
-let suggestSeq   = 0;    // guards against out-of-order autocomplete responses
+let suggestItems  = [];   // current autocomplete dropdown entries
+let activeIndex   = -1;   // keyboard-selected suggestion
+let suggestSeq    = 0;    // guards against out-of-order autocomplete responses
+let indexedFiles  = [];   // names from /api/stats
+let selectedFile  = null; // null = search all files
+let searchMode    = "and";
 
 /* ─────────────────────────────── helpers ─────────────────────────────── */
 
@@ -145,9 +207,9 @@ const ms = (v) => (v == null ? "–" : Number(v).toFixed(2) + " ms");
 function showStatus(kind, text) {
   const el = $("indexStatus");
   el.className = "mt-3 rounded-lg px-3 py-2 text-sm " + (
-    kind === "ok"   ? "bg-emerald-500/10 text-emerald-300" :
-    kind === "err"  ? "bg-rose-500/10 text-rose-300"       :
-                      "bg-slate-800 text-slate-300");
+    kind === "ok"   ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200" :
+    kind === "err"  ? "bg-rose-50 text-rose-700 ring-1 ring-rose-200"       :
+                      "bg-slate-100 text-slate-600");
   el.textContent = text;
   el.classList.remove("hidden");
 }
@@ -162,18 +224,19 @@ async function loadStats() {
     $("statTokens").textContent  = stats.isIndexed ? stats.totalTokens  : "–";
     $("statBuildMs").textContent = stats.isIndexed ? ms(stats.indexTimeMs) : "–";
 
-    // Phase 2: report how many dictionary terms were seeded and via which provider.
-    const seed = $("seedLine");
+    indexedFiles = stats.indexedFiles || [];
+    renderFileList();
+
+    // Seed badge in the title bar.
+    const badge = $("seedBadge");
     if (stats.seededTerms > 0) {
-      seed.innerHTML = "📚 <b class=\"text-slate-300\">" + stats.seededTerms +
-        "</b> dictionary terms seeded via " + esc(stats.seedProvider) +
-        (stats.seedSucceeded ? "" :
-          " <span class=\"text-rose-400\">⚠ " + esc(stats.seedError || "") + "</span>");
+      badge.textContent = `📚 ${stats.seededTerms} dictionary terms · ${stats.seedProvider}`;
+      badge.className = "ml-auto rounded-full bg-sky-50 px-3 py-1 text-xs text-sky-700 ring-1 ring-sky-200";
     } else if (stats.seedError) {
-      seed.innerHTML = "<span class=\"text-rose-400\">⚠ seeding failed: " +
-        esc(stats.seedError) + "</span>";
+      badge.textContent = "⚠ dictionary not loaded";
+      badge.className = "ml-auto rounded-full bg-rose-50 px-3 py-1 text-xs text-rose-600 ring-1 ring-rose-200";
     } else {
-      seed.textContent = "no dictionary seeds loaded";
+      badge.textContent = "no dictionary seeds";
     }
 
     // First-run convenience: index the default folder automatically.
@@ -182,6 +245,55 @@ async function loadStats() {
     showStatus("err", "Cannot reach the API — is the server running?");
   }
 }
+
+/* ───────────────────────── file-switcher dropdown ───────────────────────── */
+
+function renderFileList(filter = "") {
+  const list = $("fileList");
+  const f = filter.trim().toLowerCase();
+  const files = indexedFiles.filter((n) => n.toLowerCase().includes(f));
+
+  // "All files" pseudo-entry first.
+  const allRow = `
+    <div data-file="" class="file-row flex cursor-pointer items-center justify-between px-4 py-2.5 text-sm hover:bg-slate-50">
+      <span class="flex items-center gap-2 font-medium ${selectedFile === null ? "text-sky-700" : "text-slate-700"}">🗂 All files</span>
+      ${selectedFile === null ? '<span class="text-sky-600">✓</span>' : ""}
+    </div>`;
+
+  list.innerHTML = allRow + (files.length ? files.map((n) => `
+    <div data-file="${esc(n)}" class="file-row flex cursor-pointer items-center justify-between px-4 py-2.5 text-sm hover:bg-slate-50 ${selectedFile === n ? "bg-sky-50/70" : ""}">
+      <span class="flex items-center gap-2 ${selectedFile === n ? "font-semibold text-sky-700" : "text-slate-700"}">📄 ${esc(n)}</span>
+      ${selectedFile === n ? '<span class="text-sky-600">✓</span>' : ""}
+    </div>`).join("")
+    : `<p class="px-4 py-3 text-sm text-slate-400">No files match "${esc(filter)}".</p>`);
+
+  $("fileCountLine").textContent =
+    `${indexedFiles.length} document${indexedFiles.length === 1 ? "" : "s"} indexed`;
+
+  list.querySelectorAll(".file-row").forEach((row) => {
+    row.addEventListener("click", () => {
+      selectedFile = row.dataset.file || null;
+      $("fileSelectLabel").textContent = selectedFile || "All files";
+      toggleFilePanel(false);
+      renderFileList($("fileFilter").value);
+      if (searchBox.value.trim()) runSearch();   // re-run under the new scope
+    });
+  });
+}
+
+function toggleFilePanel(force) {
+  const panel = $("fileSelectPanel"), wrap = $("fileSelectWrap");
+  const show = force !== undefined ? force : panel.classList.contains("hidden");
+  panel.classList.toggle("hidden", !show);
+  wrap.classList.toggle("open", show);
+  if (show) { $("fileFilter").value = ""; renderFileList(); $("fileFilter").focus(); }
+}
+
+$("fileSelectBtn").addEventListener("click", () => toggleFilePanel());
+$("fileFilter").addEventListener("input", (e) => renderFileList(e.target.value));
+document.addEventListener("click", (e) => {
+  if (!$("fileSelectWrap").contains(e.target)) toggleFilePanel(false);
+});
 
 /* ─────────────────────────────── indexing ─────────────────────────────── */
 
@@ -219,10 +331,10 @@ function renderSuggestions(data) {
 
   suggestBox.innerHTML = suggestItems.map((s, i) => `
     <div data-i="${i}"
-         class="suggestion cursor-pointer px-5 py-2.5 text-sm hover:bg-slate-800
+         class="suggestion cursor-pointer px-5 py-2.5 text-sm hover:bg-sky-50
                 flex items-center justify-between">
-      <span class="text-slate-200"><b class="text-indigo-300">${esc(data.prefix)}</b>${esc(s.word.slice(data.prefix.length))}</span>
-      <span class="ml-4 font-mono text-xs text-slate-500">${s.frequency}× in corpus</span>
+      <span class="text-slate-700"><b class="text-sky-600">${esc(data.prefix)}</b>${esc(s.word.slice(data.prefix.length))}</span>
+      <span class="ml-4 font-mono text-xs text-slate-400">${s.frequency}× in corpus</span>
     </div>`).join("");
   suggestBox.classList.remove("hidden");
 
@@ -277,7 +389,7 @@ searchBox.addEventListener("keydown", (e) => {
   else return;
 
   suggestBox.querySelectorAll(".suggestion").forEach((el, i) => {
-    el.classList.toggle("bg-slate-800", i === activeIndex);
+    el.classList.toggle("bg-sky-50", i === activeIndex);
   });
 });
 
@@ -285,16 +397,28 @@ document.addEventListener("click", (e) => {
   if (!suggestBox.contains(e.target) && e.target !== searchBox) hideSuggestions();
 });
 
+/* ──────────────────── search mode tabs (AND / OR) ──────────────────── */
+
+function setMode(mode) {
+  searchMode = mode;
+  const on  = "rounded-md bg-white px-5 py-1.5 font-semibold text-slate-800 shadow-sm ring-1 ring-slate-200";
+  const off = "rounded-md px-5 py-1.5 font-medium text-slate-500 transition hover:text-slate-700";
+  $("tabAnd").className = mode === "and" ? on : off;
+  $("tabOr").className  = mode === "or"  ? on : off;
+}
+$("tabAnd").addEventListener("click", () => setMode("and"));
+$("tabOr").addEventListener("click",  () => setMode("or"));
+setMode("and");
+
 /* ──────────────────────────────── search ──────────────────────────────── */
 
 async function runSearch() {
   const q = searchBox.value.trim();
-  const mode = $("modeSelect").value;
   hideSuggestions();
   if (!q) return;
 
   try {
-    const url = "/api/search?q=" + encodeURIComponent(q) + "&mode=" + mode;
+    const url = "/api/search?q=" + encodeURIComponent(q) + "&mode=" + searchMode;
 
     // Search the corpus AND look the query up in the seeded dictionary in
     // parallel; the definition card only appears when the word is known.
@@ -306,7 +430,8 @@ async function runSearch() {
     renderDefinition(def);
     renderResults(data);
   } catch (e) {
-    resultsBox.innerHTML = "";
+    resultCard.classList.add("hidden");
+    otherMatches.classList.add("hidden");
     placeholder.classList.remove("hidden");
     showStatus("err", "Search failed: " + e.message);
   }
@@ -321,60 +446,101 @@ function renderDefinition(def) {
   if (!def || !def.definition) { box.classList.add("hidden"); return; }
 
   box.innerHTML = `
-    <div class="fade-in rounded-2xl border border-amber-500/30 bg-amber-500/5 p-5 shadow-lg">
+    <div class="fade-in rounded-lg border border-amber-200 bg-amber-50/70 p-5">
       <div class="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 class="text-lg font-semibold text-amber-200">📖 ${esc(def.word)}</h2>
-        <span class="rounded-full bg-amber-500/10 px-3 py-1 text-xs font-mono text-amber-300">
-          seeded via ${esc(def.provider)}
+        <h2 class="text-base font-semibold text-amber-800">📖 ${esc(def.word)}</h2>
+        <span class="rounded-full bg-amber-100 px-3 py-0.5 text-xs font-medium text-amber-700">
+          ${esc(def.provider)}
         </span>
       </div>
-      <p class="mt-2 text-sm leading-relaxed text-slate-300">${esc(def.definition)}</p>
+      <p class="mt-2 text-sm leading-relaxed text-slate-700">${esc(def.definition)}</p>
     </div>`;
   box.classList.remove("hidden");
 }
+
+/* ─────────── one result card: selected file first, others as chips ─────────── */
 
 function renderResults(data) {
   metrics.classList.remove("hidden");
   metrics.classList.add("flex");
   $("metricSearch").textContent = "search " + ms(data.searchTimeMs);
   $("metricMode").textContent   = "mode: " + data.mode.toUpperCase();
+  $("metricFile").textContent   = "file: " + (selectedFile || "all");
   $("metricCount").textContent  = data.totalMatches + " file(s) matched";
 
+  placeholder.classList.add("hidden");
+
   if (!data.results.length) {
-    resultsBox.innerHTML = `
-      <div class="rounded-2xl border border-slate-800 bg-slate-900/70 p-8 text-center">
+    resultCard.innerHTML = `
+      <div class="rounded-lg border border-slate-200 bg-white p-8 text-center">
         <p class="text-4xl">🤷</p>
-        <p class="mt-3 text-slate-400">No documents matched
-           <b class="text-white">"${esc(data.query)}"</b>.</p>
-        <p class="mt-1 text-sm text-slate-600">Check spelling, or try the OR mode.</p>
+        <p class="mt-3 text-slate-600">No documents matched
+           <b class="text-slate-800">"${esc(data.query)}"</b>.</p>
+        <p class="mt-1 text-sm text-slate-400">Check spelling, or try the OR mode.</p>
       </div>`;
+    resultCard.classList.remove("hidden");
+    otherMatches.classList.add("hidden");
     return;
   }
 
-  // One card per matching document; <mark> snippets arrive pre-highlighted.
-  resultsBox.innerHTML = data.results.map((r) => `
-    <article class="fade-in rounded-2xl border border-slate-800 bg-slate-900/70 p-5
-                    shadow-lg transition hover:border-slate-700">
+  // The SHOW card: the selected file's result, or the top-ranked one when
+  // searching all files. Everything else becomes a compact chip.
+  const shown = selectedFile
+    ? data.results.find((r) => r.documentName === selectedFile)
+    : data.results[0];
+  const others = data.results.filter((r) => r !== shown);
+
+  resultCard.innerHTML = `
+    <article class="fade-in rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
       <div class="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 class="text-lg font-semibold text-indigo-300">📄 ${esc(r.documentName)}</h2>
-        <span class="rounded-full bg-indigo-500/10 px-3 py-1 text-xs font-mono text-indigo-300">
-          relevance ${r.relevanceScore} · ${r.occurrenceCount}×
+        <h2 class="text-base font-semibold text-slate-800">📄 ${esc(shown.documentName)}</h2>
+        <span class="rounded-full bg-sky-50 px-3 py-1 text-xs font-mono text-sky-700 ring-1 ring-sky-200">
+          relevance ${shown.relevanceScore} · ${shown.occurrenceCount}×
         </span>
       </div>
-      <p class="mt-1 font-mono text-xs text-slate-500">${esc(r.filePath)}</p>
+      <p class="mt-1 font-mono text-xs text-slate-400">${esc(shown.filePath)}</p>
 
       <div class="mt-3 flex flex-wrap gap-1.5">
-        ${r.lineNumbers.map((n) =>
-          `<span class="rounded bg-slate-800 px-2 py-0.5 text-xs text-slate-400">line ${n}</span>`
+        ${shown.lineNumbers.map((n) =>
+          `<span class="rounded bg-slate-100 px-2 py-0.5 text-xs text-slate-500">line ${n}</span>`
         ).join("")}
       </div>
 
       <div class="mt-3 space-y-2">
-        ${r.snippets.map((s) =>
-          `<p class="rounded-lg bg-slate-950/60 p-3 text-sm leading-relaxed text-slate-300">${s}</p>`
-        ).join("") || '<p class="text-sm text-slate-600">(no preview window)</p>'}
+        ${shown.snippets.map((s) =>
+          `<p class="rounded-lg bg-slate-50 p-3 text-sm leading-relaxed text-slate-700">${s}</p>`
+        ).join("") || '<p class="text-sm text-slate-400">(no preview window)</p>'}
       </div>
-    </article>`).join("");
+    </article>`;
+  resultCard.classList.remove("hidden");
+
+  if (others.length) {
+    otherMatches.innerHTML = `
+      <div class="rounded-lg border border-slate-200 bg-white px-4 py-3">
+        <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Also matched in</p>
+        <div class="mt-2 flex flex-wrap gap-2">
+          ${others.map((r) => `
+            <button data-doc="${esc(r.documentName)}"
+                    class="other-chip rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-600
+                           transition hover:bg-sky-50 hover:text-sky-700 ring-1 ring-slate-200">
+              📄 ${esc(r.documentName)} · ${r.occurrenceCount}×
+            </button>`).join("")}
+        </div>
+      </div>`;
+    otherMatches.classList.remove("hidden");
+
+    // Clicking a chip switches the card to that document.
+    otherMatches.querySelectorAll(".other-chip").forEach((chip) => {
+      chip.addEventListener("click", () => {
+        selectedFile = chip.dataset.doc;
+        $("fileSelectLabel").textContent = selectedFile;
+        renderFileList($("fileFilter").value);
+        runSearch();
+      });
+    });
+  } else {
+    otherMatches.classList.add("hidden");
+  }
 }
 
 /* ─────────────────────────────── boot ─────────────────────────────── */
