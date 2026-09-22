@@ -14,4 +14,10 @@
     <PackageReference Include="MySqlConnector" Version="2.6.2" />
   </ItemGroup>
 
+  <!-- Bundle the offline seed dictionary with every build (bin, publish, exe)
+       so the GitHub provider's local fallback works everywhere, incl. dotnet run. -->
+  <ItemGroup>
+    <None Include="data\**" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>
