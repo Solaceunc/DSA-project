@@ -140,6 +140,12 @@ app.MapGet("/api/stats",
         (SearchEngine engine) => Results.Json(engine.GetStats()))
     .WithName("Stats");
 
+// Portable snapshot of the engine (postings + definitions + stats). Static
+// sites like the GitHub Pages demo load this file instead of a live server.
+app.MapGet("/api/export",
+        (SearchEngine engine) => Results.Json(engine.Export()))
+    .WithName("Export");
+
 // Health probe used by the auto-launch logic (and handy for tooling).
 app.MapGet("/health", () => Results.Ok(new { status = "healthy" }))
     .ExcludeFromDescription();

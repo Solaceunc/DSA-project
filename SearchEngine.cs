@@ -406,6 +406,39 @@ public sealed class SearchEngine
         get { lock (_lock) return _vocabulary.Count; }
     }
 
+    /// <summary>
+    /// GET /api/export payload: a portable snapshot of the whole engine —
+    /// stats, every posting of the inverted index, and the definitions —
+    /// straight from the real C# data structures. Static sites (GitHub
+    /// Pages) embed this JSON and replay searches client-side with the
+    /// same algorithms, so the demo is genuinely the engine's output.
+    /// </summary>
+    public IndexExport Export()
+    {
+        lock (_lock)
+        {
+            var index = _invertedIndex.ToDictionary(
+                kvp => kvp.Key,
+                kvp => (IReadOnlyList<PostingExport>)kvp.Value
+                    .Select(p => new PostingExport(
+                        p.DocumentName, p.OccurrenceCount, p.LineNumbers))
+                    .ToList(),
+                StringComparer.Ordinal);
+
+            return new IndexExport(
+                DateTime.UtcNow.ToString("o"),
+                GetStats(),
+                _definitions.ToDictionary(
+                    kvp => kvp.Key, kvp => kvp.Value.Definition,
+                    StringComparer.Ordinal),
+                index,
+                _documentLines.ToDictionary(
+                    kvp => Path.GetFileName(kvp.Key) ?? kvp.Key,
+                    kvp => (IReadOnlyList<string>)kvp.Value.ToList(),
+                    StringComparer.OrdinalIgnoreCase));
+        }
+    }
+
     // ─────────────────── Phase 2: external term seeding ───────────────────
 
     /// <summary>Phase-2 definitions keyed by sanitized term (seeds from MariaDB or GitHub).</summary>
