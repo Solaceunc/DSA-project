@@ -1,52 +1,29 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="900" height="430" viewBox="0 0 900 430" font-family="Segoe UI, Helvetica, Arial, sans-serif">
-  <!-- Background -->
-  <rect x="0" y="0" width="900" height="430" rx="18" fill="#020617"/>
-  <rect x="1" y="1" width="898" height="428" rx="17" fill="none" stroke="#1e293b" stroke-width="2"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="430" viewBox="0 0 900 430">
+  <rect x="0" y="0" width="900" height="430" rx="18" fill="#000000"/>
+  <rect x="1" y="1" width="898" height="428" rx="17" fill="none" stroke="#1c2d4a" stroke-width="2"/>
+  <text x="60" y="68" font-size="34" font-weight="700" fill="#60a5fa" font-family="Times New Roman, serif">Mini</text>
+  <text x="137" y="68" font-size="34" font-weight="700" fill="#e8eefc" font-family="Times New Roman, serif">Search Engine</text>
+  <text x="60" y="98" font-size="15" fill="#8ea4c8" font-family="Times New Roman, serif">C# .NET 8 &#183; Inverted Index &#183; Trie Autocomplete &#183; Live Latency Benchmarks</text>
 
-  <!-- Header -->
-  <text x="60" y="68" font-size="34" font-weight="700" fill="#818cf8">Mini</text>
-  <text x="137" y="68" font-size="34" font-weight="700" fill="#f8fafc">Search</text>
-  <text x="252" y="68" font-size="15" fill="#475569">.txt engine</text>
-  <text x="60" y="98" font-size="15" fill="#94a3b8">Inverted Index &#183; Trie Autocomplete &#183; Live Latency Benchmarks</text>
+  <rect x="60" y="122" width="150" height="30" rx="15" fill="#0a0f1a" stroke="#1c2d4a"/>
+  <text x="135" y="142" font-size="13" fill="#60a5fa" text-anchor="middle" font-family="Consolas, monospace">index 2.2 ms</text>
+  <rect x="222" y="122" width="168" height="30" rx="15" fill="#0a0f1a" stroke="#1c2d4a"/>
+  <text x="306" y="142" font-size="13" fill="#60a5fa" text-anchor="middle" font-family="Consolas, monospace">search 0.28 ms</text>
+  <rect x="402" y="122" width="170" height="30" rx="15" fill="#0a0f1a" stroke="#1c2d4a"/>
+  <text x="487" y="142" font-size="13" fill="#c7d7f5" text-anchor="middle" font-family="Consolas, monospace">377 unique words</text>
 
-  <!-- Metric chips -->
-  <rect x="60" y="122" width="150" height="30" rx="15" fill="#1e293b"/>
-  <text x="135" y="142" font-size="13" fill="#6ee7b7" text-anchor="middle" font-family="Consolas, monospace">index 2.2 ms</text>
-  <rect x="222" y="122" width="168" height="30" rx="15" fill="#1e293b"/>
-  <text x="306" y="142" font-size="13" fill="#6ee7b7" text-anchor="middle" font-family="Consolas, monospace">search 0.28 ms</text>
-  <rect x="402" y="122" width="170" height="30" rx="15" fill="#1e293b"/>
-  <text x="487" y="142" font-size="13" fill="#c7d2fe" text-anchor="middle" font-family="Consolas, monospace">377 unique words</text>
+  <rect x="60" y="180" width="780" height="170" rx="12" fill="#060a13" stroke="#1c2d4a"/>
+  <text x="84" y="216" font-size="17" font-weight="600" fill="#60a5fa" font-family="Times New Roman, serif">&#128196; algorithms.txt</text>
+  <rect x="660" y="198" width="156" height="24" rx="12" fill="#1c2d4a"/>
+  <text x="738" y="214" font-size="12" fill="#c7d7f5" text-anchor="middle" font-family="Consolas, monospace">relevance 6 &#183; 6&#215;</text>
 
-  <!-- Result card -->
-  <rect x="60" y="180" width="780" height="170" rx="12" fill="#0f172a" stroke="#1e293b"/>
-  <text x="84" y="216" font-size="17" font-weight="600" fill="#818cf8">&#128196; algorithms.txt</text>
-  <rect x="660" y="198" width="156" height="24" rx="12" fill="#312e81"/>
-  <text x="738" y="214" font-size="12" fill="#c7d2fe" text-anchor="middle" font-family="Consolas, monospace">relevance 6 &#183; 6&#215;</text>
+  <text x="84" y="258" font-size="15" fill="#c7d7f5" font-family="Times New Roman, serif">A</text>
+  <rect x="99" y="243" width="84" height="20" rx="3" fill="#2563eb"/>
+  <text x="103" y="258" font-size="15" font-weight="600" fill="#ffffff" font-family="Times New Roman, serif">hash table</text>
+  <text x="189" y="258" font-size="15" fill="#c7d7f5" font-family="Times New Roman, serif">maps keys to buckets and gives average constant-time lookups.</text>
 
-  <!-- Snippet line 1: A hash table maps keys... -->
-  <text x="84" y="258" font-size="15" fill="#cbd5e1">A</text>
-  <rect x="99" y="243" width="84" height="20" rx="3" fill="#fde047"/>
-  <text x="103" y="258" font-size="15" font-weight="600" fill="#422006">hash table</text>
-  <text x="189" y="258" font-size="15" fill="#cbd5e1">maps keys to buckets and gives average constant-time lookups.</text>
+  <rect x="84" y="286" width="730" height="36" rx="8" fill="#0a0f1a" stroke="#1c2d4a"/>
+  <text x="100" y="309" font-size="13" fill="#8ea4c8" font-family="Consolas, monospace">GET /api/search?q=hash+table &#8594; 200 OK &#183; 3 files &#183; 0.28 ms</text>
 
-  <!-- Snippet line 2: The hash table is the backbone... -->
-  <text x="84" y="290" font-size="15" fill="#cbd5e1">The</text>
-  <rect x="117" y="275" width="84" height="20" rx="3" fill="#fde047"/>
-  <text x="121" y="290" font-size="15" font-weight="600" fill="#422006">hash table</text>
-  <text x="211" y="290" font-size="15" fill="#cbd5e1">is the backbone of every modern inverted index.</text>
-
-  <!-- Line numbers -->
-  <rect x="84" y="308" width="64" height="20" rx="4" fill="#1e293b"/>
-  <text x="116" y="322" font-size="12" fill="#94a3b8" text-anchor="middle" font-family="Consolas, monospace">line 9</text>
-  <rect x="156" y="308" width="64" height="20" rx="4" fill="#1e293b"/>
-  <text x="188" y="322" font-size="12" fill="#94a3b8" text-anchor="middle" font-family="Consolas, monospace">line 10</text>
-
-  <!-- Autocomplete hint -->
-  <rect x="60" y="368" width="500" height="34" rx="10" fill="#0f172a" stroke="#1e293b"/>
-  <text x="80" y="390" font-size="14" fill="#e2e8f0" font-family="Consolas, monospace">sort&#9608;</text>
-  <text x="146" y="390" font-size="13" fill="#818cf8" font-family="Consolas, monospace">sort</text>
-  <text x="176" y="390" font-size="13" fill="#64748b" font-family="Consolas, monospace">3&#215; &#160; sorted &#160; sorting &#160; sorts</text>
-
-  <!-- Footer -->
-  <text x="840" y="414" font-size="12" fill="#475569" text-anchor="end">ASP.NET Core Minimal API &#183; C# .NET 8 &#183; zero external packages</text>
+  <text x="60" y="392" font-size="14" fill="#8ea4c8" font-family="Times New Roman, serif">Pure data structures, no frameworks: hash-table postings &#183; from-scratch Trie &#183; TF ranking &#183; AND / OR matching</text>
 </svg>
