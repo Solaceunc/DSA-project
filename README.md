@@ -1,8 +1,8 @@
 # 🔎 Mini Search Engine — C# .NET 8
 
-[![CI](https://github.com/Sea8611/I.T-211-Project/actions/workflows/ci.yml/badge.svg)](https://github.com/Sea8611/I.T-211-Project/actions/workflows/ci.yml)
 ![.NET](https://img.shields.io/badge/.NET-8.0-512BD4)
 ![NuGet packages](https://img.shields.io/badge/NuGet%20packages-0-success)
+![Platform](https://img.shields.io/badge/platform-win--x64-blue)
 
 ![Mini Search Engine](docs/banner.svg)
 
@@ -16,6 +16,9 @@ complete Data Structures & Algorithms showcase on top of ASP.NET Core Minimal AP
 - ⚖️ **TF ranking** — most relevant files first, with AND intersection and OR union matching
 - ⏱️ **Stopwatch benchmarks** — exact `indexTimeMs` / `searchTimeMs` returned by every call and displayed live
 - ✨ **Highlighted snippets** — ~100-character previews with `<mark>` tags, extracted from the original text
+- 🌗 **Dark dashboard UI** — GRC-style single-page dashboard (deep-navy theme) with AND/OR tab pills
+- 🗂️ **File switcher** — scope any search to one indexed document via a searchable dropdown of every indexed file
+- 📄 **Single-result pager** — one result card at a time; ‹ Prev / Next › flips through matching documents, with "also matched in" chips that jump straight to a page
 - 🚀 **One-command start** — `dotnet run` opens the GUI at http://localhost:5000 automatically
 - 📴 **Offline seeding** — if the GitHub dictionary is unreachable (private repo, no internet),
 the bundled `data/dictionary.json` is loaded automatically instead
@@ -23,27 +26,16 @@ the bundled `data/dictionary.json` is loaded automatically instead
 ## Downloads
 
 Grab a ready-to-run build from the
-[Releases page](https://github.com/Sea8611/I.T-211-Project/releases) — no .NET install needed:
+[Releases page](releases) — no .NET install needed:
 
 | Release | File |
 |---------|------|
-| **v1.2** (latest) | `MiniSearchEngine-v1.2-win-x64.zip` |
-| Source code | `MiniSearchEngine-v*-source.zip` |
+| **v1.4.1** (latest) | `MiniSearchEngine-v1.4.1-win-x64.zip` |
+| Source code | auto-generated on the release page |
 
 The zip contains `MiniSearchEngine.exe`, the `documents/` sample corpus, and
 `data/dictionary.json`. Unzip anywhere and double-click the exe — the server starts and
 your browser opens http://localhost:5000 by itself.
-
-- **Inverted Index** (hash table) — `Dictionary<string, List<SearchResult>>` mapping every
-  sanitized word to its postings (documents, occurrence counts, line numbers).
-- **Trie / Prefix Tree** — implemented 100% from scratch (`TrieNode` + `Trie`, no libraries)
-  over the full vocabulary, powering live autocomplete.
-- **TF ranking** — documents ranked by term frequency; multi-word **AND** intersection and
-  **OR** union matching.
-- **Stopwatch benchmarks** — exact `indexTimeMs` / `searchTimeMs` returned by every call and
-  displayed live in the UI.
-- **Highlighted snippets** — ~100-char previews with `<mark>` tags, extracted from the
-  original (non-sanitized) text.
 
 ## Changing the GUI (theming guide)
 
@@ -221,7 +213,7 @@ SearchEngine.cs             inverted index, crawler, ranking, snippets, benchmar
 Trie.cs / TrieNode.cs       from-scratch prefix tree
 Tokenizer.cs                punctuation stripping, lowercasing, stop-words
 Models.cs                   SearchResult posting + all API DTOs
-wwwroot/index.html          Tailwind single-page GUI (autocomplete, metrics, results)
+wwwroot/index.html          Tailwind single-page dark dashboard (file switcher, autocomplete, pager)
 data/dictionary.json        bundled seed dictionary (offline fallback for the GitHub provider)
 documents/                  sample corpus (4 files)
 ```
