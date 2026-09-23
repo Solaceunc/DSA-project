@@ -9,6 +9,9 @@
 A standalone keyword search engine that indexes and searches local `.txt` files, built as a
 complete Data Structures & Algorithms showcase on top of ASP.NET Core Minimal APIs.
 
+> 🌐 **[Try the live demo](https://solaceunc.github.io/DSA-project/)** — the same search algorithm
+> (inverted index + Trie) running in your browser over the bundled corpus. No install needed.
+
 ## Features
 
 - 🔍 **Inverted index** — hand-built hash table (`Dictionary<string, List<SearchResult>>`) whose postings carry occurrence counts and 1-based line numbers

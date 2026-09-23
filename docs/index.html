@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mini Search Engine — C# .NET 8</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0b1220; --panel:#141d31; --panel-2:#101a2d; --border:#243049;
+    --text:#e6edf7; --muted:#8fa3bf; --accent:#38bdf8; --accent-2:#34d399;
+    --mark:#fbbf24;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    background:
+      radial-gradient(1000px 500px at 85% -10%, rgba(56,189,248,.10), transparent 60%),
+      radial-gradient(800px 500px at 0% 110%, rgba(52,211,153,.07), transparent 60%),
+      var(--bg);
+    color:var(--text);
+    font-family:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;
+    line-height:1.55;
+  }
+  .wrap{max-width:1060px;margin:0 auto;padding:0 24px}
+
+  /* ── hero ─────────────────────────────────────────── */
+  header{padding:72px 0 40px}
+  .kicker{
+    display:inline-flex;align-items:center;gap:8px;
+    font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--accent);border:1px solid rgba(56,189,248,.35);
+    background:rgba(56,189,248,.08);
+    padding:6px 14px;border-radius:999px;margin-bottom:20px;
+  }
+  h1{font-size:clamp(30px,5vw,46px);font-weight:800;letter-spacing:-.02em;line-height:1.12}
+  h1 .grad{
+    background:linear-gradient(92deg,var(--accent),var(--accent-2));
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  .sub{margin-top:14px;max-width:640px;color:var(--muted);font-size:16px}
+  .cta{margin-top:28px;display:flex;gap:12px;flex-wrap:wrap}
+  .btn{
+    display:inline-flex;align-items:center;gap:8px;text-decoration:none;
+    padding:11px 20px;border-radius:10px;font-weight:600;font-size:14px;
+    transition:transform .12s ease, box-shadow .12s ease;
+  }
+  .btn:hover{transform:translateY(-1px)}
+  .btn-primary{background:var(--accent);color:#06121f;box-shadow:0 6px 22px rgba(56,189,248,.25)}
+  .btn-ghost{border:1px solid var(--border);color:var(--text);background:var(--panel-2)}
+  .btn-ghost:hover{border-color:var(--accent)}
+
+  /* ── cards ────────────────────────────────────────── */
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin-top:44px}
+  .card{
+    background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px;
+  }
+  .card h3{font-size:14px;font-weight:600;margin-bottom:6px;display:flex;gap:8px;align-items:center}
+  .card p{font-size:13px;color:var(--muted)}
+  .card code{font-size:12px;color:var(--accent);background:rgba(56,189,248,.08);padding:1px 5px;border-radius:4px}
+
+  /* ── demo ─────────────────────────────────────────── */
+  .demo{margin:64px 0 72px}
+  .demo-head{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+  .demo-head h2{font-size:22px;font-weight:700}
+  .demo-head span{font-size:13px;color:var(--muted)}
+  .panel{
+    background:var(--panel);border:1px solid var(--border);border-radius:16px;
+    padding:20px;box-shadow:0 20px 50px rgba(0,0,0,.35);
+  }
+  .searchrow{display:flex;gap:10px;flex-wrap:wrap}
+  .searchbox{position:relative;flex:1;min-width:240px}
+  .searchbox input{
+    width:100%;padding:12px 44px 12px 14px;border-radius:10px;font-size:15px;
+    background:var(--panel-2);border:1px solid var(--border);color:var(--text);outline:none;
+  }
+  .searchbox input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(56,189,248,.15)}
+  .searchbox .go{
+    position:absolute;right:6px;top:50%;transform:translateY(-50%);
+    background:var(--accent);border:none;color:#06121f;font-weight:700;
+    padding:7px 12px;border-radius:7px;cursor:pointer;font-size:13px;
+  }
+  select{
+    padding:12px;border-radius:10px;background:var(--panel-2);
+    border:1px solid var(--border);color:var(--text);font-size:14px;cursor:pointer;
+  }
+  /* autocomplete */
+  .ac{
+    position:absolute;left:0;right:0;top:calc(100% + 6px);z-index:20;
+    background:var(--panel);border:1px solid var(--border);border-radius:10px;
+    overflow:hidden;display:none;box-shadow:0 14px 34px rgba(0,0,0,.5);
+  }
+  .ac.open{display:block}
+  .ac div{padding:9px 14px;font-size:14px;cursor:pointer;display:flex;justify-content:space-between}
+  .ac div:hover,.ac div.sel{background:rgba(56,189,248,.12)}
+  .ac .freq{color:var(--muted);font-size:12px}
+  /* stats chips */
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+  .chip{
+    font-size:12px;color:var(--muted);background:var(--panel-2);
+    border:1px solid var(--border);border-radius:999px;padding:4px 12px;
+  }
+  .chip b{color:var(--text)}
+  /* result */
+  #result{margin-top:16px}
+  .doc{
+    background:var(--panel-2);border:1px solid var(--border);border-radius:12px;
+    padding:16px 18px;margin-bottom:12px;
+  }
+  .doc-top{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+  .doc-top .name{font-weight:700;font-size:15px}
+  .doc-top .score{font-size:12px;color:var(--accent-2);font-weight:600}
+  .lines{font-size:12px;color:var(--muted);margin-top:2px}
+  .snippet{
+    margin-top:10px;font-size:14px;color:#c9d6ea;background:rgba(0,0,0,.25);
+    border-left:3px solid var(--accent);padding:10px 12px;border-radius:0 8px 8px 0;
+    font-family:ui-monospace,'Cascadia Code',Consolas,monospace;
+  }
+  mark{background:var(--mark);color:#1a1204;border-radius:3px;padding:0 2px;font-weight:600}
+  .def{
+    margin-top:12px;border:1px solid rgba(52,211,153,.4);background:rgba(52,211,153,.07);
+    border-radius:12px;padding:12px 16px;font-size:14px;display:none;
+  }
+  .def b{color:var(--accent-2)}
+  .empty{margin-top:16px;text-align:center;color:var(--muted);font-size:14px;padding:26px 0}
+  .status{font-size:12px;color:var(--muted);margin-top:12px}
+
+  /* ── dsa table + footer ───────────────────────────── */
+  section.info{padding:0 0 60px}
+  section.info h2{font-size:20px;font-weight:700;margin-bottom:14px}
+  table{width:100%;border-collapse:collapse;background:var(--panel);border:1px solid var(--border);border-radius:12px;overflow:hidden;font-size:14px}
+  th,td{padding:10px 14px;text-align:left;border-bottom:1px solid var(--border)}
+  th{background:var(--panel-2);font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+  tr:last-child td{border-bottom:none}
+  td code{color:var(--accent);font-size:13px}
+  footer{border-top:1px solid var(--border);padding:22px 0 40px;font-size:13px;color:var(--muted);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+  footer a{color:var(--accent);text-decoration:none}
+</style>
+</head>
+<body>
+
+<header class="wrap">
+  <div class="kicker">● C# .NET 8 · Minimal API · DSA showcase</div>
+  <h1>A Mini Search Engine,<br>built from <span class="grad">raw data structures</span></h1>
+  <p class="sub">
+    An inverted index, a hand-rolled Trie, TF ranking and highlighted snippets — all implemented
+    from scratch, wrapped in an ASP.NET Core Minimal API with a live benchmark on every call.
+    The demo below is the <b>same algorithm running in your browser</b> over this repo's real corpus.
+  </p>
+  <div class="cta">
+    <a class="btn btn-primary" href="releases">⬇ Download the Windows exe</a>
+    <a class="btn btn-ghost" href="https://github.com/Solaceunc/DSA-project">★ View source on GitHub</a>
+  </div>
+
+  <div class="grid">
+    <div class="card"><h3>🔍 Inverted index</h3><p>Hash table of postings — <code>Dictionary&lt;string, List&lt;SearchResult&gt;&gt;</code> with occurrence counts and 1-based line numbers.</p></div>
+    <div class="card"><h3>🌳 Trie autocomplete</h3><p>Prefix tree with explicit node pointers, zero libraries — try typing below and watch it suggest.</p></div>
+    <div class="card"><h3>⚖️ TF ranking</h3><p>Documents ranked by term frequency, with AND intersection and OR union matching.</p></div>
+    <div class="card"><h3>⏱️ Real benchmarks</h3><p>Every search and index call reports exact <code>Stopwatch</code> latency, surfaced live in the UI.</p></div>
+  </div>
+</header>
+
+<!-- ══════════════════ LIVE DEMO ══════════════════ -->
+<div class="wrap demo" id="demo">
+  <div class="demo-head">
+    <h2>🖥️ Try it right now — no install</h2>
+    <span>the real algorithm, running client-side on the repo's own .txt files</span>
+  </div>
+
+  <div class="panel">
+    <div class="searchrow">
+      <div class="searchbox">
+        <input id="q" type="text" placeholder='Try "hash table", "graph or tree", "sort"…' autocomplete="off">
+        <button class="go" onclick="runSearch()">Search</button>
+        <div class="ac" id="ac"></div>
+      </div>
+      <select id="mode" onchange="runSearch()">
+        <option value="and">AND — all words</option>
+        <option value="or">OR — any word</option>
+      </select>
+      <select id="file" onchange="runSearch()">
+        <option value="">All files</option>
+      </select>
+    </div>
+
+    <div class="chips" id="chips"></div>
+    <div id="result"><div class="empty">Loading corpus &amp; building the in-memory index…</div></div>
+    <div class="status" id="status"></div>
+  </div>
+</div>
+
+<!-- ══════════════════ DSA TABLE ══════════════════ -->
+<section class="wrap info">
+  <h2>Data structures &amp; algorithms inside</h2>
+  <table>
+    <tr><th>Structure</th><th>Where</th><th>Complexity</th></tr>
+    <tr><td>Inverted index (hash table of postings)</td><td><code>SearchEngine.cs</code></td><td>O(1) average lookup per term</td></tr>
+    <tr><td>Trie with explicit <code>TrieNode</code> pointers</td><td><code>Trie.cs / TrieNode.cs</code></td><td>O(L) insert/lookup; prefix DFS</td></tr>
+    <tr><td>AND matching</td><td><code>MultiTermLookup</code></td><td>intersection seeded from the rarest list</td></tr>
+    <tr><td>OR matching</td><td><code>UnionLookup</code></td><td>union merge, max per-document frequency</td></tr>
+    <tr><td>TF ranking</td><td><code>RankAndBuildResults</code></td><td>sort by occurrence count desc</td></tr>
+    <tr><td>Snippet extractor</td><td><code>BuildSnippets</code></td><td>~100-char window, HTML-escaped, <code>&lt;mark&gt;</code></td></tr>
+  </table>
+</section>
+
+<footer class="wrap">
+  <div>🔎 Mini Search Engine — built as an academic DSA showcase; every core structure is hand-implemented.</div>
+  <div><a href="https://github.com/Solaceunc/DSA-project">GitHub</a> · <a href="releases">Releases</a> · <a href="#demo">Live demo</a></div>
+</footer>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   Live demo — a faithful JS port of the C# engine:
+     Tokenizer    : [a-z0-9]+ tokens, stop-word removal (Tokenizer.cs)
+     InvertedIndex: Map<term, Map<doc, {count, lines[], snippets[]}>>
+     Trie         : explicit child-map nodes, prefix DFS (Trie.cs)
+     Ranking      : occurrence count desc; AND = intersect, OR = union
+     Snippets     : ~100-char window around first hit, <mark>-wrapped
+   ═══════════════════════════════════════════════════════════════ */
+const STOP = new Set(['a','an','the','is','of','to','in','on','at','for']);
+const FILES = ['algorithms.txt','data_structures.txt','history_of_computing.txt','search_engines.txt'];
+const BASE = location.pathname.replace(/\/[^\/]*$/, '/');   // → /DSA-project/
+
+const index = new Map();      // term → Map(doc → {count, lines:Set, snippets:[]})
+const trie  = {children:new Map(), isWord:false, count:0};   // root
+const docTokens = new Map();  // doc → total token count (for stats)
+let docsReady = 0, buildMs = 0;
+
+/* ── tokenizer (mirrors Tokenizer.cs) ── */
+const tokenize = t => t.toLowerCase().match(/[a-z0-9]+/g)?.filter(w => !STOP.has(w)) ?? [];
+
+/* ── trie ops (mirrors Trie.cs) ── */
+function trieInsert(word){
+  let n = trie;
+  for (const ch of word){
+    if (!n.children.has(ch)) n.children.set(ch, {children:new Map(), isWord:false, count:0});
+    n = n.children.get(ch);
+  }
+  n.isWord = true; n.count++;
+}
+function trieComplete(prefix, limit=8){
+  let n = trie;
+  for (const ch of prefix){ if (!n.children.has(ch)) return []; n = n.children.get(ch); }
+  const out = [];
+  (function dfs(node, word){
+    if (out.length >= limit) return;
+    if (node.isWord) out.push({word, count:node.count});
+    for (const [ch, child] of [...node.children].sort()) dfs(child, word + ch);
+  })(n, prefix);
+  return out.sort((a,b) => b.count - a.count);
+}
+
+/* ── snippet extractor (mirrors SearchEngine.BuildSnippets) ── */
+function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function makeSnippet(line, terms){
+  const low = line.toLowerCase();
+  let pos = -1;
+  for (const t of terms){ const p = low.indexOf(t); if (p !== -1 && (pos === -1 || p < pos)) pos = p; }
+  if (pos === -1) pos = 0;
+  const start = Math.max(0, pos - 40), end = Math.min(line.length, start + 100);
+  let s = line.slice(start, end).trim();
+  const re = new RegExp('(' + terms.map(t => t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|') + ')', 'gi');
+  s = esc(s).replace(re, '<mark>$1</mark>');
+  return (start > 0 ? '…' : '') + s + (end < line.length ? '…' : '');
+}
+
+/* ── search (mirrors MultiTermLookup / UnionLookup + TF ranking) ── */
+function search(rawTerms, mode, fileFilter){
+  const lists = [];
+  for (const t of rawTerms){
+    const postings = index.get(t);
+    if (!postings) return [];                       // AND semantics: missing term ⇒ no results
+    lists.push(postings);
+  }
+  if (!lists.length) return [];
+  const acc = new Map();                            // doc → {count, lines:Set, hits:Set}
+  if (mode === 'and'){
+    lists.sort((a,b) => a.size - b.size);           // seed from rarest postings
+    const [first, ...rest] = lists;
+    for (const [doc, p] of first){
+      if (fileFilter && doc !== fileFilter) continue;
+      if (!rest.every(m => m.has(doc))) continue;
+      let count = p.count; const lines = new Set(p.lines); const hits = new Set([first === lists[0] ? rawTerms[0] : '']);
+      for (const m of rest){ count += m.get(doc).count; m.get(doc).lines.forEach(l => lines.add(l)); }
+      acc.set(doc, {count, lines, hits});
+    }
+  } else {
+    lists.forEach((postings, i) => {
+      for (const [doc, p] of postings){
+        if (fileFilter && doc !== fileFilter) continue;
+        const cur = acc.get(doc) || {count:0, lines:new Set(), hits:new Set()};
+        cur.count = Math.max(cur.count, 0) + p.count;   // union: sum frequencies across terms
+        p.lines.forEach(l => cur.lines.add(l));
+        acc.set(doc, cur);
+      }
+    });
+  }
+  const terms = rawTerms;
+  return [...acc].map(([doc, v]) => ({
+    doc, count: v.count, lines: [...v.lines].sort((a,b) => a-b),
+    snippets: snippetCache.get(doc).filter(l => terms.some(t => l.toLowerCase().includes(t)))
+              .slice(0, 3).map(l => makeSnippet(l, terms)),
+  })).sort((a,b) => b.count - a.count);
+}
+const snippetCache = new Map();   // doc → array of full lines (for snippet windows)
+
+/* ── build index from the repo's real .txt files ── */
+(async function build(){
+  const t0 = performance.now();
+  await Promise.all(FILES.map(async f => {
+    try{
+      const res = await fetch(BASE + 'documents/' + f);
+      if (!res.ok) throw new Error(res.status);
+      const lines = (await res.text()).split(/\r?\n/);
+      let total = 0;
+      lines.forEach((line, i) => {
+        const toks = tokenize(line);
+        total += toks.length;
+        for (const tok of toks){
+          trieInsert(tok);
+          if (!index.has(tok)) index.set(tok, new Map());
+          const postings = index.get(tok);
+          if (!postings.has(f)) postings.set(f, {count:0, lines:new Set()});
+          const p = postings.get(f);
+          p.count++; p.lines.add(i + 1);
+        }
+        if (toks.length){
+          if (!snippetCache.has(f)) snippetCache.set(f, []);
+          snippetCache.get(f).push(line);
+        }
+      });
+      docTokens.set(f, total);
+      docsReady++;
+      const opt = document.createElement('option');
+      opt.value = f; opt.textContent = f;
+      document.getElementById('file').appendChild(opt);
+    }catch(e){ console.warn('skip', f, e); }
+  }));
+  buildMs = performance.now() - t0;
+  document.getElementById('status').textContent =
+    docsReady === FILES.length
+      ? `Index built in ${buildMs.toFixed(1)} ms — ${index.size} unique words across ${docsReady} files. Same structures as the C# engine.`
+      : `Loaded ${docsReady}/${FILES.length} files (some may be blocked on this mirror) — ${index.size} unique words.`;
+  document.getElementById('result').innerHTML =
+    '<div class="empty">Index ready — try <b>hash table</b>, <b>graph or tree</b>, or just type a letter.</div>';
+})();
+
+/* ── autocomplete UI ── */
+const acBox = document.getElementById('ac'), qEl = document.getElementById('q');
+let acItems = [], acSel = -1;
+qEl.addEventListener('input', () => {
+  const prefix = (qEl.value.toLowerCase().match(/[a-z0-9]+/g) ?? []).pop() ?? '';
+  acItems = prefix.length ? trieComplete(prefix, 8) : [];
+  acSel = -1;
+  if (!acItems.length){ acBox.classList.remove('open'); return; }
+  acBox.innerHTML = acItems.map(s =>
+    `<div data-w="${s.word}"><span>${s.word}</span><span class="freq">×${s.count}</span></div>`).join('');
+  acBox.classList.add('open');
+});
+qEl.addEventListener('keydown', e => {
+  if (!acBox.classList.contains('open')) return;
+  const divs = [...acBox.children];
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp'){
+    e.preventDefault();
+    acSel = (acSel + (e.key === 'ArrowDown' ? 1 : -1) + acItems.length) % acItems.length;
+    divs.forEach((d,i) => d.classList.toggle('sel', i === acSel));
+  } else if (e.key === 'Enter'){
+    if (acSel >= 0){ e.preventDefault(); qEl.value = acItems[acSel].word; acBox.classList.remove('open'); runSearch(); }
+  } else if (e.key === 'Escape'){ acBox.classList.remove('open'); }
+});
+acBox.addEventListener('mousedown', e => {
+  const w = e.target.closest('[data-w]')?.dataset.w;
+  if (w){ qEl.value = w; acBox.classList.remove('open'); runSearch(); }
+});
+document.addEventListener('click', e => { if (!e.target.closest('.searchbox')) acBox.classList.remove('open'); });
+
+/* ── definition dictionary (bundled seed mirror of data/dictionary.json) ── */
+const DEFS = {};
+fetch(BASE + 'data/dictionary.json').then(r => r.ok ? r.json() : Promise.reject()).then(j => {
+  for (const t of (j.terms ?? j)) DEFS[(t.term ?? '').toLowerCase()] = t.definition;
+}).catch(() => {});
+
+/* ── search execution + rendering ── */
+const SINGLE = new Set(['graph','tree','sort']);
+function runSearch(){
+  acBox.classList.remove('open');
+  const qText = qEl.value.trim().toLowerCase();
+  const res = document.getElementById('result');
+  const chips = document.getElementById('chips');
+  if (!qText){ res.innerHTML = '<div class="empty">Type a query to search the corpus.</div>'; chips.innerHTML=''; return; }
+
+  const t0 = performance.now();
+  let orMode = document.getElementById('mode').value === 'or';
+  let terms = qText.match(/[a-z0-9]+/g) ?? [];
+  if (!orMode && terms.includes('or') && terms.length > 2){        // explicit OR operator, like the API
+    terms = terms.filter(t => t !== 'or'); orMode = true;
+  }
+  const fileFilter = document.getElementById('file').value || null;
+  const results = search(terms, orMode ? 'or' : 'and', fileFilter);
+  const ms = performance.now() - t0;
+
+  const words = terms.filter(t => !SINGLE.has(t) || terms.length === 1);
+  const defWord = terms.find(t => DEFS[t]);
+  chips.innerHTML = `
+    <span class="chip">⏱ <b>${ms.toFixed(2)} ms</b></span>
+    <span class="chip">mode <b>${orMode ? 'OR' : 'AND'}</b></span>
+    <span class="chip"><b>${results.length}</b> matching file${results.length===1?'':'s'}</span>
+    ${defWord ? `<span class="chip" style="color:var(--accent-2)">📖 definition available</span>` : ''}`;
+
+  if (!results.length){
+    res.innerHTML = `<div class="empty">No matches for “${esc(qText)}” in ${orMode?'OR':'AND'} mode${fileFilter?` within <b>${esc(fileFilter)}</b>`:''}.</div>`;
+    return;
+  }
+  const defHtml = defWord ? `<div class="def" style="display:block"><b>📖 ${defWord}</b> — ${esc(DEFS[defWord])}</div>` : '';
+  res.innerHTML = defHtml + results.map(r => `
+    <div class="doc">
+      <div class="doc-top">
+        <div><div class="name">📄 ${r.doc}</div>
+        <div class="lines">lines ${r.lines.slice(0,8).join(', ')}${r.lines.length>8?'…':''} · ${r.count} occurrence${r.count===1?'':'s'}</div></div>
+        <div class="score">relevance ${r.count}</div>
+      </div>
+      ${r.snippets.map(s => `<div class="snippet">${s}</div>`).join('')}
+    </div>`).join('');
+}
+qEl.addEventListener('keydown', e => { if (e.key === 'Enter' && !acBox.classList.contains('open')) runSearch(); });
+</script>
+</body>
+</html>
