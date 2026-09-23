@@ -1,0 +1,31 @@
+Data Structures Reference
+
+Dictionary and Hash Table
+A dictionary stores key-value pairs. A hash table implements the dictionary
+by hashing each key into a bucket index. Collisions are resolved by chaining
+or by open addressing. Average lookup, insertion, and deletion take O(1).
+
+Linked List
+A linked list is a chain of nodes where each node points to the next node.
+Insertion at the head is O(1); searching for a value is O(n).
+
+Stack and Queue
+The stack is last-in first-out and supports push and pop.
+The queue is first-in first-out and supports enqueue and dequeue.
+Graph traversal uses a queue for breadth-first search and a stack or
+recursion for depth-first search.
+
+Tree
+A binary search tree keeps sorted keys: smaller keys go left, larger keys
+go right. Balanced trees such as AVL and red-black trees guarantee O(log n)
+search, insertion, and deletion. The trie, or prefix tree, is a special tree
+that stores strings character by character and powers autocomplete.
+
+Heap
+A binary heap is a complete tree stored inside an array. The min-heap
+serves the smallest element in O(log n) and backs priority queues.
+
+Graph
+A graph is a set of vertices connected by edges. Representations include
+the adjacency matrix and the adjacency list. Shortest paths, cycles, and
+connectivity are classical graph problems.

@@ -221,7 +221,15 @@
    ═══════════════════════════════════════════════════════════════ */
 const STOP = new Set(['a','an','the','is','of','to','in','on','at','for']);
 const FILES = ['algorithms.txt','data_structures.txt','history_of_computing.txt','search_engines.txt'];
-const BASE = location.pathname.replace(/\/[^\/]*$/, '/');   // → /DSA-project/
+const BASE = location.pathname.replace(/\/*$/, '/');   // → /DSA-project/
+const RAW = 'https://raw.githubusercontent.com/Solaceunc/DSA-project/main/documents/';
+
+async function loadCorpusFile(f){
+  try{ const r = await fetch(RAW + f); if (r.ok) return await r.text(); }catch(e){}
+  const r = await fetch(BASE + 'documents/' + f);       // bundled fallback (Pages mirror)
+  if (!r.ok) throw new Error(r.status);
+  return await r.text();
+}
 
 const index = new Map();      // term → Map(doc → {count, lines:Set, snippets:[]})
 const trie  = {children:new Map(), isWord:false, count:0};   // root
@@ -311,9 +319,8 @@ const snippetCache = new Map();   // doc → array of full lines (for snippet wi
   const t0 = performance.now();
   await Promise.all(FILES.map(async f => {
     try{
-      const res = await fetch(BASE + 'documents/' + f);
-      if (!res.ok) throw new Error(res.status);
-      const lines = (await res.text()).split(/\r?\n/);
+      const text = await loadCorpusFile(f);
+      const lines = text.split(/\r?\n/);
       let total = 0;
       lines.forEach((line, i) => {
         const toks = tokenize(line);

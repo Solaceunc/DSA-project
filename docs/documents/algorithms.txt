@@ -1,0 +1,24 @@
+Algorithms and Data Structures
+
+An algorithm is a finite sequence of well-defined instructions for solving a problem.
+Every algorithm must be correct, terminate, and use resources efficiently.
+
+Data structures organize information so algorithms can operate efficiently.
+The array is the simplest data structure: constant-time access by index.
+The linked list trades random access for cheap insertion and removal.
+A hash table maps keys to buckets and gives average constant-time lookup.
+The hash table is the backbone of every modern inverted index.
+
+Sorting is a classical family of algorithms.
+Bubble sort is simple but slow for large inputs.
+Merge sort divides the array, sorts the halves, and merges them in linear time.
+Quicksort partitions the array around a pivot and is fast in practice.
+Heap sort builds a binary heap and repeatedly extracts the maximum.
+
+Graphs model relationships between objects.
+Breadth-first search explores a graph level by level using a queue.
+Depth-first search dives deep along one path using a stack or recursion.
+Dijkstra's algorithm finds shortest paths when edge weights are non-negative.
+
+Big O notation describes how running time grows with input size.
+An O(1) hash table lookup beats an O(n) linear scan for large collections.

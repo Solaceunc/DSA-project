@@ -1,0 +1,24 @@
+Information Retrieval and Search Engines
+
+A search engine answers user queries by consulting an index built in advance.
+The core structure is the inverted index: a hash table that maps each word
+to the list of documents containing that word.
+
+Indexing proceeds in three phases.
+First, the crawler scans the folder and reads every text file.
+Second, the tokenizer sanitizes the text: punctuation is stripped, letters
+are lowercased, and common stopwords such as the, is, of, and to are removed.
+Third, the indexer writes postings: for each word, one entry per document
+recording the occurrence count and the line numbers of every match.
+
+At query time the engine looks the word up in the inverted index in
+constant time, ranks documents by term frequency, and extracts a short
+snippet around the first match so the user can preview the context.
+
+A trie, or prefix tree, stores the whole vocabulary and answers prefix
+queries for autocomplete. Walking the trie from the root to the deepest
+matching node costs time proportional to the prefix length, and a small
+depth-first traversal then collects every stored completion.
+
+Modern engines add relevance feedback, spelling correction, and caching,
+but the inverted index remains the data structure at the heart of search.
